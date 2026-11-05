@@ -66,6 +66,9 @@ export const getBait: RequestHandler = getField('bait');
 
 // @route POST /api/money
 export const editMoney: RequestHandler = async (req, res) => {
+    const { amount } = req.body;
+    if (typeof amount !== 'number' || amount < 0)
+        throw new AppError('Invalid fields', 400);
     const user = await User.findByIdAndUpdate(
         req.user?.id,
         { $inc: { money: req.body.amount } },
