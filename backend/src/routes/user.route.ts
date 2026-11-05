@@ -21,7 +21,7 @@ router.post('/register', register);
 router.route('/luck').all(requireAuth).get(getLuck).post(incrementLuck);
 router.route('/rod').all(requireAuth).get(getRod).post(incrementRod);
 router.route('/bait').all(requireAuth).get(getBait).post(incrementBait);
-router.route('/money').all(requireAuth).get(getMoney).patch(editMoney);
-router.route('/almanac').all(requireAuth).get(getAlmanac).patch(editAlmanac);
+router.route('/money').all(requireAuth).get(getMoney).post(editMoney);
+router.route('/almanac').all(requireAuth).get(getAlmanac).post(editAlmanac);
 
 export default router;
