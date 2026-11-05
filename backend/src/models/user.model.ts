@@ -46,21 +46,25 @@ const UserSchema = new mongoose.Schema<IUser>({
     luck: {
         type: Number,
         required: true,
+        default: 0,
     },
     inventory: {
         money: {
             type: Number,
             required: true,
+            default: 0,
         },
         rod: {
             type: String,
             enum: RARITIES,
             required: true,
+            default: 'common',
         },
         bait: {
             type: String,
             enum: RARITIES,
             required: true,
+            default: 'common',
         },
         fish: {
             type: [FishSchema],

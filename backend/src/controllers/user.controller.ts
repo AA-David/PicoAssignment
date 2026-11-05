@@ -1,23 +1,19 @@
+import crypto from 'node:crypto';
 import User from '../models/user.model.js';
 import type { RequestHandler } from 'express';
 
 //
 //------------------------------------------------------------------
 
-// @route POST /api/login
-export const login: RequestHandler = (req, res) => {
-    // take in the string
-    // hash it with sha-256
-    // check if it matches a user
-};
-
 // @route POST /api/register
-export const register: RequestHandler = (req, res) => {
-    // create a 128 or 256 bit string with crypto
-    // hash it with sha-256
+export const register: RequestHandler = async (req, res) => {
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    await User.create({ login: tokenHash });
+    res.status(201).set('Cache-Control', 'no-store').json({ token });
 };
 
-//
 //------------------------------------------------------------------
 
 // @route POST /api/luck
