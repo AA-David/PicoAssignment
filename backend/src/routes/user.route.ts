@@ -10,19 +10,18 @@ import {
     incrementBait,
     incrementLuck,
     incrementRod,
-    login,
     register,
 } from '../controllers/user.controller.js';
+import { requireAuth } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
-router.post('/login', login);
 router.post('/register', register);
 
-router.route('/luck').get(getLuck).post(incrementLuck);
-router.route('/rod').get(getRod).post(incrementRod);
-router.route('/bait').get(getBait).post(incrementBait);
-router.route('/money').get(getMoney).patch(editMoney);
-router.route('/almanac').get(getAlmanac).patch(editAlmanac);
+router.route('/luck').all(requireAuth).get(getLuck).post(incrementLuck);
+router.route('/rod').all(requireAuth).get(getRod).post(incrementRod);
+router.route('/bait').all(requireAuth).get(getBait).post(incrementBait);
+router.route('/money').all(requireAuth).get(getMoney).post(editMoney);
+router.route('/almanac').all(requireAuth).get(getAlmanac).post(editAlmanac);
 
 export default router;
