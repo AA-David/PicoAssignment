@@ -1,0 +1,602 @@
+[
+  {
+    "name": "Goldfish",
+    "file": "goldfish.png",
+    "rarity": 0,
+    "price": 5
+  },
+  {
+    "name": "Guppy",
+    "file": "guppy.png",
+    "rarity": 0,
+    "price": 6
+  },
+  {
+    "name": "Zebrafish",
+    "file": "zebrafish.png",
+    "rarity": 0,
+    "price": 6
+  },
+  {
+    "name": "Shrimp",
+    "file": "shrimp.png",
+    "rarity": 0,
+    "price": 8
+  },
+  {
+    "name": "Starfish",
+    "file": "starfish.png",
+    "rarity": 0,
+    "price": 8
+  },
+  {
+    "name": "Sailfin Molly",
+    "file": "sailfin_molly.png",
+    "rarity": 0,
+    "price": 8
+  },
+  {
+    "name": "Tiger Barb",
+    "file": "tiger_barb.png",
+    "rarity": 0,
+    "price": 10
+  },
+  {
+    "name": "Cherry Barb",
+    "file": "cherry_barb.png",
+    "rarity": 0,
+    "price": 10
+  },
+  {
+    "name": "European Anchovy",
+    "file": "european_anchovy.png",
+    "rarity": 0,
+    "price": 10
+  },
+  {
+    "name": "Perch",
+    "file": "perch.png",
+    "rarity": 0,
+    "price": 12
+  },
+  {
+    "name": "Hermit Crab",
+    "file": "hermit_crab.png",
+    "rarity": 0,
+    "price": 12
+  },
+  {
+    "name": "Tench",
+    "file": "tench.png",
+    "rarity": 0,
+    "price": 14
+  },
+  {
+    "name": "Rainbow Trout",
+    "file": "rainbow_trout.png",
+    "rarity": 0,
+    "price": 15
+  },
+  {
+    "name": "Carp",
+    "file": "carp.png",
+    "rarity": 0,
+    "price": 15
+  },
+  {
+    "name": "River Lamprey",
+    "file": "river_lamprey.png",
+    "rarity": 0,
+    "price": 16
+  },
+  {
+    "name": "Atlantic Cod",
+    "file": "atlantic_cod.png",
+    "rarity": 0,
+    "price": 18
+  },
+  {
+    "name": "Hake",
+    "file": "hake.png",
+    "rarity": 0,
+    "price": 18
+  },
+  {
+    "name": "Garfish",
+    "file": "garfish.png",
+    "rarity": 0,
+    "price": 18
+  },
+  {
+    "name": "Cardinal Tetra",
+    "file": "cardinal_tetra.png",
+    "rarity": 0,
+    "price": 20
+  },
+  {
+    "name": "Petticoat Tetra",
+    "file": "petticoat_tetra.png",
+    "rarity": 0,
+    "price": 20
+  },
+  {
+    "name": "Dwarf Gourami",
+    "file": "dwarf_gourami.png",
+    "rarity": 0,
+    "price": 22
+  },
+  {
+    "name": "Silver Seabream",
+    "file": "silver_seabream.png",
+    "rarity": 0,
+    "price": 24
+  },
+  {
+    "name": "Blackspot Seabream",
+    "file": "blackspot_seabream.png",
+    "rarity": 0,
+    "price": 26
+  },
+  {
+    "name": "Catfish",
+    "file": "catfish.png",
+    "rarity": 0,
+    "price": 28
+  },
+  {
+    "name": "Barbel",
+    "file": "barbel.png",
+    "rarity": 0,
+    "price": 30
+  },
+  {
+    "name": "Flying Fish",
+    "file": "flying_fish.png",
+    "rarity": 0,
+    "price": 35
+  },
+  {
+    "name": "Atlantic Crayfish",
+    "file": "atlantic_crayfish.png",
+    "rarity": 0,
+    "price": 40
+  },
+  {
+    "name": "Fireworm",
+    "file": "fireworm.png",
+    "rarity": 1,
+    "price": 45
+  },
+  {
+    "name": "Blue Crab",
+    "file": "blue_crab.png",
+    "rarity": 1,
+    "price": 50
+  },
+  {
+    "name": "Squid",
+    "file": "squid.png",
+    "rarity": 1,
+    "price": 55
+  },
+  {
+    "name": "Emperor Tetra",
+    "file": "emperor_tetra.png",
+    "rarity": 1,
+    "price": 55
+  },
+  {
+    "name": "Fighting Fish",
+    "file": "fighting_fish.png",
+    "rarity": 1,
+    "price": 60
+  },
+  {
+    "name": "Roules Goby",
+    "file": "roules_goby.png",
+    "rarity": 1,
+    "price": 60
+  },
+  {
+    "name": "Great Scallop",
+    "file": "great_scallop.png",
+    "rarity": 1,
+    "price": 60
+  },
+  {
+    "name": "Yellow Tang",
+    "file": "yellow_tang.png",
+    "rarity": 1,
+    "price": 65
+  },
+  {
+    "name": "Atlantic Spadefish",
+    "file": "atlantic_spadefish.png",
+    "rarity": 1,
+    "price": 65
+  },
+  {
+    "name": "Greater Weever",
+    "file": "greater_weever.png",
+    "rarity": 1,
+    "price": 70
+  },
+  {
+    "name": "Lumpfish",
+    "file": "lumpfish.png",
+    "rarity": 1,
+    "price": 70
+  },
+  {
+    "name": "Hillstream Loach",
+    "file": "hillstream_loach.png",
+    "rarity": 1,
+    "price": 70
+  },
+  {
+    "name": "Sockeye Salmon",
+    "file": "sockeye_salmon.png",
+    "rarity": 1,
+    "price": 75
+  },
+  {
+    "name": "Atlantic Salmon",
+    "file": "atlantic_salmon.png",
+    "rarity": 1,
+    "price": 80
+  },
+  {
+    "name": "Atlantic Trumpetfish",
+    "file": "atlantic_trumpetfish.png",
+    "rarity": 1,
+    "price": 80
+  },
+  {
+    "name": "European Seabass",
+    "file": "european_seabass.png",
+    "rarity": 1,
+    "price": 85
+  },
+  {
+    "name": "Boesemans Rainbowfish",
+    "file": "boesemans_rainbowfish.png",
+    "rarity": 1,
+    "price": 85
+  },
+  {
+    "name": "Pike",
+    "file": "pike.png",
+    "rarity": 1,
+    "price": 90
+  },
+  {
+    "name": "Sailfin Tang",
+    "file": "sailfin_tang.png",
+    "rarity": 1,
+    "price": 90
+  },
+  {
+    "name": "Masu",
+    "file": "masu.png",
+    "rarity": 1,
+    "price": 95
+  },
+  {
+    "name": "Oscar",
+    "file": "oscar.png",
+    "rarity": 1,
+    "price": 100
+  },
+  {
+    "name": "Clownfish",
+    "file": "clownfish.png",
+    "rarity": 1,
+    "price": 100
+  },
+  {
+    "name": "Blue Acara",
+    "file": "blue_acara.png",
+    "rarity": 1,
+    "price": 105
+  },
+  {
+    "name": "Angelfish",
+    "file": "angelfish.png",
+    "rarity": 1,
+    "price": 110
+  },
+  {
+    "name": "Porcupinefish",
+    "file": "porcupinefish.png",
+    "rarity": 1,
+    "price": 110
+  },
+  {
+    "name": "Bluehead Wrasse",
+    "file": "bluehead_wrasse.png",
+    "rarity": 1,
+    "price": 115
+  },
+  {
+    "name": "Red Piranha",
+    "file": "red_piranha.png",
+    "rarity": 1,
+    "price": 120
+  },
+  {
+    "name": "Longhorn Cowfish",
+    "file": "longhorn_cowfish.png",
+    "rarity": 1,
+    "price": 120
+  },
+  {
+    "name": "Red Scorpionfish",
+    "file": "red_scorpionfish.png",
+    "rarity": 1,
+    "price": 125
+  },
+  {
+    "name": "Lobster",
+    "file": "lobster.png",
+    "rarity": 1,
+    "price": 130
+  },
+  {
+    "name": "Saddled Bichir",
+    "file": "saddled_bichir.png",
+    "rarity": 1,
+    "price": 130
+  },
+  {
+    "name": "Stingray",
+    "file": "stingray.png",
+    "rarity": 1,
+    "price": 135
+  },
+  {
+    "name": "Spotted Pufferfish",
+    "file": "spotted_pufferfish.png",
+    "rarity": 1,
+    "price": 140
+  },
+  {
+    "name": "Octopus",
+    "file": "octopus.png",
+    "rarity": 1,
+    "price": 145
+  },
+  {
+    "name": "Hogfish",
+    "file": "hogfish.png",
+    "rarity": 1,
+    "price": 150
+  },
+  {
+    "name": "Blue Tang",
+    "file": "blue_tang.png",
+    "rarity": 2,
+    "price": 160
+  },
+  {
+    "name": "Seahorse",
+    "file": "seahorse.png",
+    "rarity": 2,
+    "price": 170
+  },
+  {
+    "name": "Spiny Lobster",
+    "file": "spiny_lobster.png",
+    "rarity": 2,
+    "price": 180
+  },
+  {
+    "name": "Turbot",
+    "file": "turbot.png",
+    "rarity": 2,
+    "price": 190
+  },
+  {
+    "name": "Barracuda",
+    "file": "barracuda.png",
+    "rarity": 2,
+    "price": 200
+  },
+  {
+    "name": "Red King Crab",
+    "file": "red_king_crab.png",
+    "rarity": 2,
+    "price": 200
+  },
+  {
+    "name": "French Angelfish",
+    "file": "french_angelfish.png",
+    "rarity": 2,
+    "price": 210
+  },
+  {
+    "name": "Gem Tang",
+    "file": "gem_tang.png",
+    "rarity": 2,
+    "price": 220
+  },
+  {
+    "name": "Queen Angelfish",
+    "file": "queen_angelfish.png",
+    "rarity": 2,
+    "price": 230
+  },
+  {
+    "name": "Bartletts Anthias",
+    "file": "bartletts_anthias.png",
+    "rarity": 2,
+    "price": 240
+  },
+  {
+    "name": "Moorish Idol",
+    "file": "moorish_idol.png",
+    "rarity": 2,
+    "price": 250
+  },
+  {
+    "name": "Koi Carp",
+    "file": "koi_carp.png",
+    "rarity": 2,
+    "price": 260
+  },
+  {
+    "name": "European Angler",
+    "file": "european_angler.png",
+    "rarity": 2,
+    "price": 270
+  },
+  {
+    "name": "Ribbon Eel",
+    "file": "ribbon_eel.png",
+    "rarity": 2,
+    "price": 280
+  },
+  {
+    "name": "Harlequin Snake Eel",
+    "file": "harlequin_snake_eel.png",
+    "rarity": 2,
+    "price": 300
+  },
+  {
+    "name": "Giant Clam",
+    "file": "giant_clam.png",
+    "rarity": 2,
+    "price": 350
+  },
+  {
+    "name": "Giant Cuttlefish",
+    "file": "giant_cuttlefish.png",
+    "rarity": 2,
+    "price": 320
+  },
+  {
+    "name": "Hairy Frogfish",
+    "file": "hairy_frogfish.png",
+    "rarity": 2,
+    "price": 340
+  },
+  {
+    "name": "Lake Sturgeon",
+    "file": "lake_sturgeon.png",
+    "rarity": 2,
+    "price": 360
+  },
+  {
+    "name": "Taimen",
+    "file": "taimen.png",
+    "rarity": 2,
+    "price": 380
+  },
+  {
+    "name": "Striped Marlin",
+    "file": "striped_marlin.png",
+    "rarity": 2,
+    "price": 420
+  },
+  {
+    "name": "Green Sea Turtle",
+    "file": "green_sea_turtle.png",
+    "rarity": 2,
+    "price": 450
+  },
+  {
+    "name": "Axolotl",
+    "file": "axolotl.png",
+    "rarity": 2,
+    "price": 480
+  },
+  {
+    "name": "Shortfin Mako Shark",
+    "file": "shortfin_mako_shark.png",
+    "rarity": 3,
+    "price": 520
+  },
+  {
+    "name": "Starry Sturgeon",
+    "file": "starry_sturgeon.png",
+    "rarity": 3,
+    "price": 580
+  },
+  {
+    "name": "Portuguese Man O War",
+    "file": "portuguese_man_o_war.png",
+    "rarity": 3,
+    "price": 600
+  },
+  {
+    "name": "Bluefin Tuna",
+    "file": "bluefin_tuna.png",
+    "rarity": 3,
+    "price": 650
+  },
+  {
+    "name": "Giant Isopod",
+    "file": "giant_isopod.png",
+    "rarity": 3,
+    "price": 700
+  },
+  {
+    "name": "Humphead Wrasse",
+    "file": "humphead_wrasse.png",
+    "rarity": 3,
+    "price": 780
+  },
+  {
+    "name": "Arapaima",
+    "file": "arapaima.png",
+    "rarity": 3,
+    "price": 850
+  },
+  {
+    "name": "Yeti Crab",
+    "file": "yeti_crab.png",
+    "rarity": 3,
+    "price": 900
+  },
+  {
+    "name": "Asian Arowana",
+    "file": "asian_arowana.png",
+    "rarity": 3,
+    "price": 1000
+  },
+  {
+    "name": "Opah",
+    "file": "opah.png",
+    "rarity": 3,
+    "price": 1100
+  },
+  {
+    "name": "Humpback Anglerfish",
+    "file": "humpback_anglerfish.png",
+    "rarity": 3,
+    "price": 1250
+  },
+  {
+    "name": "Ocean Sunfish",
+    "file": "ocean_sunfish.png",
+    "rarity": 4,
+    "price": 1600
+  },
+  {
+    "name": "Oarfish",
+    "file": "oarfish.png",
+    "rarity": 4,
+    "price": 2200
+  },
+  {
+    "name": "African Coelacanth",
+    "file": "african_coelacanth.png",
+    "rarity": 4,
+    "price": 3500
+  },
+  {
+    "name": "Progenetica",
+    "file": "progenetica.png",
+    "rarity": 4,
+    "price": 5000
+  }
+]

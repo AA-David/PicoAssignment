@@ -1,1 +1,15 @@
 @import 'tailwindcss';
+
+.pixelart-rescale {
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+}
+
+.fish-locked {
+    filter: blur(2px) grayscale(100%);
+}
+
+.fish-unlocked {
+    filter: none;
+}
