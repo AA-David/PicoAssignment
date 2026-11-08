@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 @import 'tailwindcss';
 
 .pixelart-rescale {
@@ -12,4 +13,8 @@
 
 .fish-unlocked {
     filter: none;
+}
+
+@theme {
+    --font-display: 'Press Start 2P', sans-serif;
 }

@@ -6,7 +6,7 @@
 | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Rod** (tier 0–4)   | Hard cap. A rod can catch fish of its own rarity and every rarity below it.                                                                                                                                                                           |
 | **Bait** (tier 0–4)  | Multiplies the chance of the rarity that matches the bait tier, **including common bait**. The player can equip any bait tier they have unlocked and so chooses which rarity to target. A bait above the rod's tier does nothing (the rod blocks it). |
-| **Luck** (level 0–5) | Shifts odds towards rarer fish. Helps rarer tiers much more than common ones. Bait multipliers are sized so a bait still targets its rarity at max luck.                                                                                              |
+| **Luck** (level 0–5) | Shifts odds towards rarer fish. The player starts at level 0 (0/5), which gives no boost. Helps rarer tiers much more than common ones. Bait multipliers are sized so a bait still targets its rarity at max luck (level 5).                           |
 
 Common bait is the free starter bait and is equipped by default.
 
@@ -23,7 +23,7 @@ if rarity > rodTier:  weight[rarity] = 0        // the rod can't catch it
 
 else:
   weight[rarity] = base_weight[rarity]                // [100, 35, 10, 2.5, 0.5]
-  weight[rarity] *= (1 + 0.25 * luckLevel) ^ rarity   // luck
+  weight[rarity] *= (1 + 0.25 * luckLevel) ^ rarity   // luck, luckLevel 0–5 (0 = no effect)
   if rarity == equippedBaitTier:  weight[rarity] *= bait_multiplier[rarity]   // [6, 5, 5, 6, 10]
   if rarity == rodTier and rodTier > 0:  weight[rarity] *= 1.5  // rod bonus
   if rarity > 0:  weight[rarity] *= random(0.8, 1.2)  // randomness, new each cast
@@ -33,7 +33,7 @@ chance_of_rarity = weight[rarity] / sum of all rarity weights
 
 Roll against those probabilities to get a rarity.
 
-**Worked example.** A player with a rare rod (`rodTier` = 2), rare bait equipped and luck level 2 (luck factor 1.5):
+**Worked example.** A player with a rare rod (`rodTier` = 2), rare bait equipped and luck level 2 (luck factor 1 + 0.25 × 2 = 1.5):
 
 | Rarity          | Calculation                      | Weight |
 | --------------- | -------------------------------- | ------ |
@@ -70,9 +70,9 @@ Then pick one fish at random, with probability `fish_weight / sum of fish_weight
 | Epic (3)      | 5,000       | 1,500       |
 | Legendary (4) | 10,000      | 2,500       |
 
-| Luck level | 1   | 2     | 3     | 4      | 5      |
-| ---------- | --- | ----- | ----- | ------ | ------ |
-| Price      | 500 | 1,500 | 4,000 | 10,000 | 25,000 |
+| Luck level | 0           | 1   | 2     | 3     | 4      | 5      |
+| ---------- | ----------- | --- | ----- | ----- | ------ | ------ |
+| Price      | 0 (starter) | 500 | 1,500 | 4,000 | 10,000 | 25,000 |
 
 Suggested buy order: rod first (unlocks the tier), then its bait, then luck whenever affordable. A new rod alone adds little money (it mostly lets you target new fish with bait), so the bait is where the payoff comes from.
 
@@ -120,7 +120,7 @@ Luck 0:
 | Epic      | 62.2%  | 21.8%    | 6.2%  | 9.3% | 0.5%      |
 | Legendary | 64.5%  | 22.6%    | 6.5%  | 1.6% | 4.8%      |
 
-Luck 5:
+Luck 5 (max):
 
 | Bait      | Common | Uncommon | Rare  | Epic  | Legendary |
 | --------- | ------ | -------- | ----- | ----- | --------- |
@@ -155,26 +155,25 @@ This is only the final collecting phase after all upgrades are bought, not the t
 
 **Legendary (4):** ocean sunfish 1600, oarfish 2200, african coelacanth 3500, progenetica 5000
 
-## Explaining `catch_config.json`
+## Tuning values
 
-| Field                                    | Value                             | Meaning                                                                                                                                                                                                                                |
-| ---------------------------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `rarities`                               | common … legendary                | The five tiers, in index order 0–4.                                                                                                                                                                                                    |
-| `base_weight`                            | `[100, 35, 10, 2.5, 0.5]`         | Starting weight per rarity before upgrades. Common is by far the most likely, and each tier up is roughly 3–5× rarer.                                                                                                                  |
-| `rod_top_tier_bonus`                     | `1.5`                             | Multiplier for the rod's highest allowed rarity, so a new rod helps a little by itself.                                                                                                                                                |
-| `bait_multiplier`                        | `[6, 5, 5, 6, 10]`                | Multiplier for the rarity matching the equipped bait. Common is now 6 (was 1), so common bait is a real targeting tool. The values are large enough that a bait stays effective even against max luck, which pushes towards rare fish. |
-| `luck_per_level`                         | `0.25`                            | Luck factor per level. The multiplier on a rarity is `(1 + 0.25 × level) ^ rarity`, so at level 5 it is 1× for common, 2.25× for uncommon, about 5× for rare, 11× for epic and 26× for legendary.                                      |
-| `luck_max_level`                         | `5`                               | Highest luck level the player can buy.                                                                                                                                                                                                 |
-| `noise`                                  | `min 0.8, max 1.2`                | Each non-common weight is multiplied by a random number in this range on every cast. Increase the spread for more unpredictable catches.                                                                                               |
-| `fish_pick_within_rarity.price_exponent` | `0.25`                            | Fish weight is `price ^ -0.25`. Higher means cheap fish dominate more (0 is a fully uniform pick; 0.5 was the old setting).                                                                                                            |
-| `fish_pick_within_rarity.new_fish_boost` | `3`                               | Weight multiplier for fish the player has not caught yet. Set to 1 to turn the feature off.                                                                                                                                            |
-| `prices.rod`                             | `[0, 300, 1800, 5000, 10000]`     | Rod price by tier (index 0 is the free starter).                                                                                                                                                                                       |
-| `prices.bait`                            | `[0, 250, 800, 1500, 2500]`       | Bait price by tier (index 0 is the free starter).                                                                                                                                                                                      |
-| `prices.luck`                            | `[500, 1500, 4000, 10000, 25000]` | Price of luck levels 1 to 5 (index 0 is level 1).                                                                                                                                                                                      |
+| Value name                               | Value                           | Meaning                                                                                                                                                                                                                                |
+| ---------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `rarities`                               | common … legendary              | The five tiers, in index order 0–4.                                                                                                                                                                                                    |
+| `base_weight`                            | `[100, 35, 10, 2.5, 0.5]`       | Starting weight per rarity before upgrades. Common is by far the most likely, and each tier up is roughly 3–5× rarer.                                                                                                                  |
+| `rod_top_tier_bonus`                     | `1.5`                           | Multiplier for the rod's highest allowed rarity, so a new rod helps a little by itself.                                                                                                                                                |
+| `bait_multiplier`                        | `[6, 5, 5, 6, 10]`              | Multiplier for the rarity matching the equipped bait. Common is now 6 (was 1), so common bait is a real targeting tool. The values are large enough that a bait stays effective even against max luck, which pushes towards rare fish. |
+| `luck_per_level`                         | `0.25`                          | Luck factor per level. The multiplier on a rarity is `(1 + 0.25 × level) ^ rarity`, so level 0 has no effect and at level 5 it is 1× for common, 2.25× for uncommon, about 5× for rare, 11× for epic and 26× for legendary.            |
+| `luck_max_level`                         | `5`                             | Highest luck level the player can buy. Players start at level 0 (0/5).                                                                                                                                                                 |
+| `noise`                                  | `min 0.8, max 1.2`              | Each non-common weight is multiplied by a random number in this range on every cast. Increase the spread for more unpredictable catches.                                                                                               |
+| `fish_pick_within_rarity.price_exponent` | `0.25`                          | Fish weight is `price ^ -0.25`. Higher means cheap fish dominate more (0 is a fully uniform pick; 0.5 was the old setting).                                                                                                            |
+| `fish_pick_within_rarity.new_fish_boost` | `3`                             | Weight multiplier for fish the player has not caught yet. Set to 1 to turn the feature off.                                                                                                                                            |
+| `prices.rod`                             | `[0, 300, 1800, 5000, 10000]`   | Rod price by tier (index 0 is the free starter).                                                                                                                                                                                       |
+| `prices.bait`                            | `[0, 250, 800, 1500, 2500]`     | Bait price by tier (index 0 is the free starter).                                                                                                                                                                                      |
+| `prices.luck`                            | `[0, 500, 1500, 4000, 10000, 25000]` | Luck price by level (index 0 is the free starting level, which gives no boost).                                                                                                                                                   |
 
-Notes on the file:
+Notes:
 
-- Your game code has to apply `noise` and the formula for `fish_pick_within_rarity`. The numbers can be read directly from the file.
+- The game code has to apply `noise` and the formula for `fish_pick_within_rarity`, not just store the numbers.
 - To make the whole game faster or slower, multiply all the prices by one factor and leave the odds alone.
-- To make luck matter earlier, raise `luck_per_level` (for example to 0.35) and lower the bait multipliers a little to compensate.
 - The tables above leave out the 0.8–1.2 randomness, so real casts will wobble around them.

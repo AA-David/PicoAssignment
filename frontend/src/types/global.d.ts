@@ -1,6 +1,14 @@
 interface IFish {
     name: string;
-    file: string;
+    img: string;
     rarity: number;
     price: number;
+}
+
+interface IStats {
+    money: number;
+    luck: number;
+    rod: number;
+    baits: number[];
+    equippedBait: number;
 }

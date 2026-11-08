@@ -4,7 +4,7 @@ interface FishProps {
 }
 
 export default function Fish({ unlockedFish, fish }: FishProps) {
-    const unlocked = unlockedFish.some((f) => f.file === fish.file);
+    const unlocked = unlockedFish?.some((f) => f.img === fish.img);
 
     let rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' =
         'common';
@@ -29,11 +29,11 @@ export default function Fish({ unlockedFish, fish }: FishProps) {
     return (
         <div
             className='flex flex-col justify-center items-center bg-[rgba(0,0,0,0.3)] border-2 border-white rounded-lg w-36 h-36 text-white text-center hover:cursor-default'
-            key={fish.file}
+            key={fish.img}
         >
             <p>{unlocked && fish.name}</p>
             <img
-                src={`/fish/${fish.file}`}
+                src={`/fish/${fish.img}`}
                 alt={fish.name + "'s image"}
                 className={`pixelart-rescale w-[64px] ${!unlocked && 'fish-locked'}`}
                 draggable='false'
