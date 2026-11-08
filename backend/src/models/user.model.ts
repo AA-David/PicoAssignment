@@ -1,8 +1,11 @@
 import mongoose from 'mongoose';
-
-// const RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary'] as const;
-// type rarity = (typeof RARITIES)[number];
-const MAX_RARITIES = 4;
+import {
+    MAX_LUCK_LEVEL,
+    MAX_RARITY,
+    MAX_ROD_LEVEL,
+    MIN_RARITY,
+    STARTER_BAIT,
+} from '../config/game.js';
 
 export interface IFish {
     name: string;
@@ -17,7 +20,8 @@ interface IUser {
     almanac: IFish[];
     money: number;
     rod: number;
-    bait: number;
+    baits: number[];
+    equippedBait: number;
     fish: IFish[];
 }
 
@@ -28,7 +32,8 @@ const FishSchema = new mongoose.Schema<IFish>(
         rarity: {
             type: Number,
             required: true,
-            max: MAX_RARITIES,
+            min: MIN_RARITY,
+            max: MAX_RARITY,
         },
         price: { type: Number, required: true },
     },
@@ -50,7 +55,8 @@ const UserSchema = new mongoose.Schema<IUser>({
         type: Number,
         required: true,
         default: 0,
-        max: 5,
+        min: 0,
+        max: MAX_LUCK_LEVEL,
     },
     money: {
         type: Number,
@@ -61,13 +67,31 @@ const UserSchema = new mongoose.Schema<IUser>({
         type: Number,
         required: true,
         default: 0,
-        max: MAX_RARITIES,
+        min: 0,
+        max: MAX_ROD_LEVEL,
     },
-    bait: {
+    baits: {
+        type: [
+            {
+                type: Number,
+                min: MIN_RARITY,
+                max: MAX_RARITY,
+            },
+        ],
+        required: true,
+        default: [STARTER_BAIT],
+    },
+    equippedBait: {
         type: Number,
         required: true,
-        default: 0,
-        max: MAX_RARITIES,
+        default: STARTER_BAIT,
+        validate: {
+            validator: function (this: unknown, value: number) {
+                const baits = (this as IUser).baits;
+                return baits.includes(value);
+            },
+            message: 'Equipped bait must be one the user owns',
+        },
     },
     fish: {
         type: [FishSchema],
