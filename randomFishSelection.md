@@ -62,17 +62,16 @@ Then pick one fish at random, with probability `fish_weight / sum of fish_weight
 
 ### Upgrade prices
 
-| Tier          | Rod         | Bait        |
-| ------------- | ----------- | ----------- |
-| Common (0)    | 0 (starter) | 0 (starter) |
-| Uncommon (1)  | 300         | 250         |
-| Rare (2)      | 1,800       | 800         |
-| Epic (3)      | 5,000       | 1,500       |
-| Legendary (4) | 10,000      | 2,500       |
+| Level | Rod (tier)         | Bait (tier)       | Luck        |
+| ----- | ------------------ | ----------------- | ----------- |
+| 0     | 0 (common)         | 0 (common)        | 0           |
+| 1     | 300 (uncommon)    | 250 (uncommon)    | 500         |
+| 2     | 1,800 (rare)       | 800 (rare)        | 1,500       |
+| 3     | 5,000 (epic)       | 1,500 (epic)      | 4,000       |
+| 4     | 10,000 (legendary) | 2,500 (legendary) | 10,000      |
+| 5     | -                  | -                 | 25,000      |
 
-| Luck level | 0           | 1   | 2     | 3     | 4      | 5      |
-| ---------- | ----------- | --- | ----- | ----- | ------ | ------ |
-| Price      | 0 (starter) | 500 | 1,500 | 4,000 | 10,000 | 25,000 |
+Level 0 of each upgrade is the free starter. Rod and bait stop at level 4; luck goes up to level 5.
 
 Suggested buy order: rod first (unlocks the tier), then its bait, then luck whenever affordable. A new rod alone adds little money (it mostly lets you target new fish with bait), so the bait is where the payoff comes from.
 
