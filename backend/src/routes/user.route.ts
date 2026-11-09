@@ -1,16 +1,19 @@
 import { Router } from 'express';
 import {
     addToAlmanac,
+    addToInventory,
     adjustMoney,
     buyBait,
     equipBait,
     getAlmanac,
     getEquippedBait,
+    getInventory,
     getLuckLevel,
     getMoney,
     getOwnedBaits,
     getRodLevel,
     registerUser,
+    sellFish,
     upgradeLuck,
     upgradeRod,
 } from '../controllers/user.controller.js';
@@ -30,5 +33,11 @@ router
 router.route('/baits').all(requireAuth).get(getOwnedBaits).post(buyBait);
 router.route('/money').all(requireAuth).get(getMoney).post(adjustMoney);
 router.route('/almanac').all(requireAuth).get(getAlmanac).post(addToAlmanac);
+router
+    .route('/inventory')
+    .all(requireAuth)
+    .get(getInventory)
+    .post(addToInventory)
+    .delete(sellFish);
 
 export default router;

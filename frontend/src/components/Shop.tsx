@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react';
 import BaitUpgradeMenu from './BaitUpgradeMenu';
-import useApiRequest from '../hooks/useApiRequest';
+import type { ApiRequest } from '../hooks/useApiRequest';
 
 export default function Shop({
     token,
+    stats,
+    apiRequest,
     handleMouseOver,
     handleMouseOut,
     isHovering,
 }: {
     token: string;
+    stats: IStats;
+    apiRequest: ApiRequest;
     handleMouseOver: () => void;
     handleMouseOut: () => void;
     isHovering: boolean;
@@ -22,20 +26,10 @@ export default function Shop({
     ] as const;
     type rarities = (typeof RARITIES)[number];
 
-    const [stats, setStats] = useState<IStats>({
-        money: 0,
-        luck: 0,
-        rod: 0,
-        baits: [0],
-        equippedBait: 0,
-    });
-
     const [rodImg, setRodImg] = useState<rarities>(RARITIES[stats.rod]);
     const [baitImg, setBaitImg] = useState<rarities>(
         RARITIES[stats.equippedBait],
     );
-
-    const apiRequest = useApiRequest(token, setStats);
 
     useEffect(() => {
         if (!token) return;

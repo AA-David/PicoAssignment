@@ -2,6 +2,8 @@ import { useCallback } from 'react';
 
 export type ApiResult = { ok: true } | { ok: false; error: string };
 
+export type ApiRequest = ReturnType<typeof useApiRequest>;
+
 export default function useApiRequest(
     token: string,
     setStats: React.Dispatch<React.SetStateAction<IStats>>,
@@ -9,7 +11,7 @@ export default function useApiRequest(
     return useCallback(
         async (
             endpoint: keyof IStats,
-            method: 'GET' | 'POST',
+            method: 'GET' | 'POST' | 'DELETE',
             body?: any,
         ): Promise<ApiResult> => {
             try {

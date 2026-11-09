@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import User from '../models/user.model.js';
 import type { RequestHandler } from 'express';
-import type { IFish } from '../models/user.model.js';
+import type { IFish, IInventoryFish } from '../models/user.model.js';
 import { AppError } from '../utils/AppError.js';
 import {
     BAIT_PRICES,
@@ -15,7 +15,14 @@ import {
 // Responds with a single field of the logged-in user
 const getField =
     (
-        field: 'luck' | 'almanac' | 'money' | 'rod' | 'baits' | 'equippedBait',
+        field:
+            | 'luck'
+            | 'almanac'
+            | 'money'
+            | 'rod'
+            | 'baits'
+            | 'equippedBait'
+            | 'inventory',
     ): RequestHandler =>
     async (req, res) => {
         const user = await User.findById(req.user?.id).select(field).lean();
@@ -186,7 +193,7 @@ export const addToAlmanac: RequestHandler = async (req, res) => {
         typeof fish.price !== 'number' ||
         fish.price < 0
     ) {
-        throw new AppError('Missing fields', 400);
+        throw new AppError('Invalid or missing fields', 400);
     }
 
     const user = await User.findByIdAndUpdate(
@@ -205,3 +212,84 @@ export const addToAlmanac: RequestHandler = async (req, res) => {
 // @desc    Get every fish in the user's almanac
 // @route   GET /api/almanac
 export const getAlmanac: RequestHandler = getField('almanac');
+
+// @desc    Add caught fish to user's inventory
+// @route   POST /api/inventory
+export const addToInventory: RequestHandler = async (req, res) => {
+    const { fish }: { fish: IInventoryFish } = req.body;
+    if (
+        !fish ||
+        !fish.name ||
+        !isValidRarity(fish.rarity) ||
+        !fish.img ||
+        typeof fish.price !== 'number' ||
+        fish.price < 0
+    ) {
+        throw new AppError('Invalid or missing fields', 400);
+    }
+
+    const options = { returnDocument: 'after', runValidators: true } as const;
+
+    // If the fish is already in the inventory, increment its quantity
+    let user = await User.findOneAndUpdate(
+        { _id: req.user?.id, 'inventory.name': fish.name },
+        { $inc: { 'inventory.$.quantity': 1 } },
+        options,
+    ).lean();
+
+    // Otherwise add it as a new entry with quantity 1
+    if (!user) {
+        user = await User.findByIdAndUpdate(
+            req.user?.id,
+            { $push: { inventory: { ...fish, quantity: 1 } } },
+            options,
+        ).lean();
+    }
+
+    if (!user) throw new AppError('User not found', 404);
+    res.status(200).json({ fish });
+};
+
+// @desc    Sell one fish from inventory: decrement its quantity (removing the entry at 0) and add its stored price to the user's money
+// @route   DELETE /api/inventory
+export const sellFish: RequestHandler = async (req, res) => {
+    const { name } = req.body;
+    if (typeof name !== 'string' || !name) {
+        throw new AppError('Invalid or missing fields', 400);
+    }
+
+    const owned = {
+        _id: req.user?.id,
+        inventory: { $elemMatch: { name, quantity: { $gte: 1 } } },
+    };
+
+    // Read the stored price so the client can't set its own
+    const owner = await User.findOne(owned, { 'inventory.$': 1 }).lean();
+    const price = owner?.inventory[0]?.price;
+    if (price === undefined) {
+        throw new AppError('User not found or fish not owned', 404);
+    }
+
+    // The filter and the update run as one atomic operation, so the quantity
+    // can't go below 0 and the money can't be paid out twice
+    const user = await User.findOneAndUpdate(
+        owned,
+        { $inc: { 'inventory.$.quantity': -1, money: price } },
+        { returnDocument: 'after' },
+    ).lean();
+    if (!user) throw new AppError('User not found or fish not owned', 404);
+
+    // Drop sold-out entries (safe to repeat; harmless if it ever fails)
+    const { inventory } =
+        (await User.findByIdAndUpdate(
+            req.user?.id,
+            { $pull: { inventory: { quantity: 0 } } },
+            { returnDocument: 'after' },
+        ).lean()) ?? user;
+
+    res.status(200).json({ inventory, money: user.money });
+};
+
+// @desc    Get every fish in the user's inventory
+// @route   GET /api/inventory
+export const getInventory: RequestHandler = getField('inventory');
