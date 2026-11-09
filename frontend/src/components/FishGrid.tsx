@@ -3,11 +3,8 @@ import fishData from '../fishData.json';
 import Fish from './Fish';
 
 export default function FishGrid({ token }: { token: string }) {
-    // TEMP: placeholder data from fishData.json for testing the UI
-    const [almanac, setAlmanac] = useState<IFish[]>(fishData.slice(0, 6));
-    const [inventory, setInventory] = useState<IInventoryFish[]>(
-        fishData.slice(0, 4).map((fish, i) => ({ ...fish, quantity: i + 1 })),
-    );
+    const [almanac, setAlmanac] = useState<IFish[]>([]);
+    const [inventory, setInventory] = useState<IInventoryFish[]>([]);
     const [selection, setSelection] = useState<'alm' | 'inv'>('alm');
 
     useEffect(() => {
