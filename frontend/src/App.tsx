@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import useApiRequest from './hooks/useApiRequest';
 import FishGrid from './components/FishGrid';
 import Shop from './components/Shop';
 import readPico from './utils/readPico';
@@ -7,6 +8,16 @@ function App() {
     const portRef = useRef<SerialPort | null>(null);
     const [token, setToken] = useState('');
     const [isHovering, setIsHovering] = useState(false);
+    const [stats, setStats] = useState<IStats>({
+        money: 0,
+        luck: 0,
+        rod: 0,
+        baits: [0],
+        equippedBait: 0,
+        almanac: [],
+        inventory: [],
+    });
+    const apiRequest = useApiRequest(token, setStats);
 
     const handleMouseOver = () => {
         setIsHovering(true);
@@ -26,6 +37,8 @@ function App() {
                     handleMouseOver={handleMouseOver}
                     handleMouseOut={handleMouseOut}
                     token={token}
+                    stats={stats}
+                    apiRequest={apiRequest}
                     isHovering={isHovering}
                 />
 
@@ -44,7 +57,11 @@ function App() {
                     </button>
                 </div>
 
-                <FishGrid token={token} />
+                <FishGrid
+                    token={token}
+                    stats={stats}
+                    apiRequest={apiRequest}
+                />
             </div>
         </>
     );

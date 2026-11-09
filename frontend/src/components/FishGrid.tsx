@@ -1,26 +1,28 @@
 import { useEffect, useState } from 'react';
 import fishData from '../fishData.json';
+import type { ApiRequest } from '../hooks/useApiRequest';
 import Fish from './Fish';
 
-export default function FishGrid({ token }: { token: string }) {
-    const [almanac, setAlmanac] = useState<IFish[]>([]);
-    const [inventory, setInventory] = useState<IInventoryFish[]>([]);
+export default function FishGrid({
+    token,
+    stats,
+    apiRequest,
+}: {
+    token: string;
+    stats: IStats;
+    apiRequest: ApiRequest;
+}) {
     const [selection, setSelection] = useState<'alm' | 'inv'>('alm');
 
     useEffect(() => {
         if (!token) return;
         // Refetch whenever the tab changes so new catches show up
-        const [endpoint, setter] =
-            selection === 'alm'
-                ? (['almanac', setAlmanac] as const)
-                : (['inventory', setInventory] as const);
+        apiRequest(selection === 'alm' ? 'almanac' : 'inventory', 'GET');
+    }, [token, selection, apiRequest]);
 
-        fetch(`http://localhost:8000/api/${endpoint}`, {
-            headers: { Authorization: `Bearer ${token}` },
-        })
-            .then((response) => response.json())
-            .then((json) => setter(json[endpoint]));
-    }, [token, selection]);
+    // The response holds the updated inventory and money, so no refetch needed
+    const sellFish = (fish: IFish) =>
+        apiRequest('inventory', 'DELETE', { name: fish.name });
 
     return (
         <div className='p-5 border-2 border-white rounded-lg w-full h-full overflow-y-scroll select-none'>
@@ -39,23 +41,24 @@ export default function FishGrid({ token }: { token: string }) {
                 </button>
             </div>
 
-            <div className='justify-center gap-5 grid grid-cols-[repeat(auto-fill,144px)]'>
+            <div className='justify-center gap-5 grid grid-cols-[repeat(auto-fill,160px)]'>
                 {selection === 'alm'
                     ? fishData.map((fish: IFish) => (
                           <Fish
                               key={fish.name}
                               fish={fish}
-                              unlocked={almanac?.some(
+                              unlocked={stats.almanac.some(
                                   (f) => f.img === fish.img,
                               )}
                           />
                       ))
-                    : inventory?.map((fish) => (
+                    : stats.inventory.map((fish) => (
                           <Fish
                               key={fish.name}
                               fish={fish}
                               unlocked
                               quantity={fish.quantity}
+                              onSell={() => sellFish(fish)}
                           />
                       ))}
             </div>

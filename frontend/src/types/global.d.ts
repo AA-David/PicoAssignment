@@ -15,4 +15,6 @@ interface IStats {
     rod: number;
     baits: number[];
     equippedBait: number;
+    almanac: IFish[];
+    inventory: IInventoryFish[];
 }
