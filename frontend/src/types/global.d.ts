@@ -5,6 +5,10 @@ interface IFish {
     price: number;
 }
 
+interface IInventoryFish extends IFish {
+    quantity: number;
+}
+
 interface IStats {
     money: number;
     luck: number;

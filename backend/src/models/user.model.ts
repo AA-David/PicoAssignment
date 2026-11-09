@@ -14,6 +14,10 @@ export interface IFish {
     price: number;
 }
 
+export interface IInventoryFish extends IFish {
+    quantity: number;
+}
+
 interface IUser {
     login: string;
     luck: number;
@@ -22,20 +26,27 @@ interface IUser {
     rod: number;
     baits: number[];
     equippedBait: number;
-    fish: IFish[];
+    inventory: IInventoryFish[];
 }
 
-const FishSchema = new mongoose.Schema<IFish>(
+const fishFields = {
+    name: { type: String, required: true },
+    img: { type: String, required: true },
+    rarity: {
+        type: Number,
+        required: true,
+        min: MIN_RARITY,
+        max: MAX_RARITY,
+    },
+    price: { type: Number, required: true },
+};
+
+const FishSchema = new mongoose.Schema<IFish>(fishFields, { _id: false });
+
+const InventoryFishSchema = new mongoose.Schema<IInventoryFish>(
     {
-        name: { type: String, required: true },
-        img: { type: String, required: true },
-        rarity: {
-            type: Number,
-            required: true,
-            min: MIN_RARITY,
-            max: MAX_RARITY,
-        },
-        price: { type: Number, required: true },
+        ...fishFields,
+        quantity: { type: Number, required: true, default: 1, min: 1 },
     },
     { _id: false },
 );
@@ -93,8 +104,8 @@ const UserSchema = new mongoose.Schema<IUser>({
             message: 'Equipped bait must be one the user owns',
         },
     },
-    fish: {
-        type: [FishSchema],
+    inventory: {
+        type: [InventoryFishSchema],
         default: [],
     },
 });

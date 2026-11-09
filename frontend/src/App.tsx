@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import Almanac from './components/Almanac';
+import FishGrid from './components/FishGrid';
 import Shop from './components/Shop';
 import readPico from './utils/readPico';
 
@@ -44,7 +44,7 @@ function App() {
                     </button>
                 </div>
 
-                <Almanac token={token} />
+                <FishGrid token={token} />
             </div>
         </>
     );
