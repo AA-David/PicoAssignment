@@ -6,11 +6,16 @@ A Stardew Valley-style fishing game played on a Raspberry Pi Pico, with a web da
 
 ### Two actions
 
+The same single button is used for every step of a cast.
+
 - Casting minigame
+    - Started by pressing the button
     - LED single-colour bar used
     - Potentiometer to move position (Shown by lit up LED)
-    - First, move to wanted casting distance,
-    - Then move to random LED light (for extra interaction)
+    - First, move to wanted casting distance, then press the button to lock it in
+    - Then a second, random LED lights up as a target (for extra interaction). The player's position is also a lit LED, so the player moves their LED onto the target LED with the potentiometer and presses the button
+    - The button only counts when the player's LED is on the target LED. Pressing anywhere else is ignored and nothing happens, so the player keeps trying until they hit it
+    - Once the player has pressed the button on the target, the fishing minigame starts automatically
 - Fishing minigame (Like Stardew Valley)
     - Button used
     - Bar moves up when button pressed, and down when not (to simulate gravity)
@@ -45,31 +50,33 @@ A Stardew Valley-style fishing game played on a Raspberry Pi Pico, with a web da
 ```
  RFID card -> Pico -> USB serial -> Website (React) -> HTTP + Bearer token -> Express API -> MongoDB
                 |                                                                 |
-                |-- HTTP: POST /api/register (empty cards only) ----------------->|
+                |-- HTTP at login: POST /api/register (empty cards only) -------->|
+                |-- HTTP at login: GET /api/state (starting state) -------------->|
                 |                                                                 |
-                '-- MQTT (HiveMQ broker): shop updates in, caught fish out <------'
+                |                  MQTT (HiveMQ broker)                           |
+                '-- caught fish out ---------> broker ---------> backend ---------|
+                    <-- live state updates <-- broker <-- backend <---------------'
 ```
 
 1. The player taps their RFID card on the RFID module.
-2. The Pico sends the card's token to the browser over USB serial (Web Serial API). The Pico also talks to the rest of the system over Wi-Fi: one HTTP call to register new cards and MQTT for everything else (see [MQTT](#mqtt)).
+2. The Pico sends the card's token to the browser over USB serial (Web Serial API). The Pico also talks to the rest of the system over Wi-Fi. At login it makes HTTP calls: one to register new cards and one to load the player's starting state. During play it uses MQTT, because HTTP requests are too slow for the game loop. The broker's only other client is the backend; the browser never connects to it (see [MQTT](#mqtt)).
 3. The website sends that token with every request to the backend. There is no login route: authentication is done by middleware that runs before every protected route.
 4. The middleware hashes the token with SHA-256 and looks the user up by that hash. Only the hash is stored, never the token itself.
 
 ### Repository layout
 
-| Path                             | Contents                                                                      |
-| -------------------------------- | ----------------------------------------------------------------------------- |
-| `backend/`                       | Express + Mongoose API (TypeScript)                                           |
-| `backend/src/config/`            | DB connection and `game.ts`, the single source of truth for game rules/prices |
-| `backend/src/models/`            | `User` schema (money, rod, luck, baits, almanac)                              |
-| `backend/src/routes/`            | API routes                                                                    |
-| `backend/src/controllers/`       | Request handlers                                                              |
-| `frontend/`                      | Vite + React + Tailwind dashboard                                             |
-| `frontend/src/components/`       | `Shop`, `BaitUpgradeMenu`, `Almanac`, `Fish`                                  |
-| `frontend/src/utils/readPico.ts` | Web Serial reader that receives the token from the Pico                       |
-| `frontend/src/fishData.json`     | The 100 catchable fish                                                        |
-| `frontend/public/`               | Fish, gear and background sprites                                             |
-| `randomFishSelection.md`         | Full design of the catch odds and balancing tables                            |
+| Path                             | Contents                                                                         |
+| -------------------------------- | -------------------------------------------------------------------------------- |
+| `backend/`                       | Express + Mongoose API (TypeScript)                                              |
+| `backend/src/config/`            | DB connection and `game.ts`, the single source of truth for game rules/prices    |
+| `backend/src/models/`            | `User` schema (money, rod, luck, baits, almanac, inventory) and the `Fish` model |
+| `backend/src/routes/`            | API routes                                                                       |
+| `backend/src/controllers/`       | Request handlers                                                                 |
+| `frontend/`                      | Vite + React + Tailwind dashboard                                                |
+| `frontend/src/components/`       | `Shop`, `BaitUpgradeMenu`, `Almanac`, `Fish`                                     |
+| `frontend/src/utils/readPico.ts` | Web Serial reader that receives the token from the Pico                          |
+| `frontend/public/`               | Fish, gear and background sprites (the `Fish` documents hold the file name)      |
+| `randomFishSelection.md`         | Full design of the catch odds and balancing tables                               |
 
 ## Game mechanics
 
@@ -83,7 +90,7 @@ A Stardew Valley-style fishing game played on a Raspberry Pi Pico, with a web da
 
 | Level | Rod (tier)         | Bait (tier)       | Luck   |
 | ----- | ------------------ | ----------------- | ------ |
-| 0     | free (common)      | free (common)     | free   |
+| 0     | free (common)      | free (common)     | -      |
 | 1     | 300 (uncommon)     | 250 (uncommon)    | 500    |
 | 2     | 1,800 (rare)       | 800 (rare)        | 1,500  |
 | 3     | 5,000 (epic)       | 1,500 (epic)      | 4,000  |
@@ -96,40 +103,75 @@ A cast first picks a rarity (weighted by rod, equipped bait, luck and a small ra
 
 There are 100 fish: 27 common, 35 uncommon, 23 rare, 11 epic and 4 legendary.
 
+### Fish data
+
+> This describes the target design. The code still identifies fish by name; see [TODO: identify fish by id instead of name](#todo-identify-fish-by-id-instead-of-name).
+
+Every fish has a numeric `id`. The `Fish` collection in MongoDB is the single source of truth for fish data (`name`, `img`, `rarity`, `price`), and the fish's `id` is its document `_id`. The website and backend read fish from the database; nothing reads a fish JSON file at runtime.
+
+The Pico keeps its own trimmed copy of the fish list stored on its flash, with only what it needs: `id`, `rarity` and `name` (for the LCD). Fish are identified by `id` everywhere, and ids are append-only: never reorder or delete a fish, because the Pico's copy and the database must agree on what each id means.
+
+The original `fishData.json` is only used once, to seed the `Fish` collection and to produce the Pico's copy, and is then deleted. To add a fish later, insert it into the database with the next free id, then regenerate the Pico's copy from `GET /api/fish`. Update the backend first and the Pico second, so the Pico never sends an id the backend doesn't know.
+
+Users store only fish ids (and quantities for the inventory), not copies of fish data. Prices are always read from the `Fish` collection, never from the client or the Pico.
+
 ## Backend API
 
 Base URL: `http://localhost:8000/api`. There is no login route. Every route except `/register` goes through the `requireAuth` middleware, which reads the `Authorization: Bearer <token>` header, hashes the token, finds the matching user and attaches their id to the request. A missing or unknown token gets a `401`.
 
-| Route           | Methods   | Description                                                                          |
-| --------------- | --------- | ------------------------------------------------------------------------------------ |
-| `/register`     | POST      | Creates a user and returns their login `token` (shown once; only its hash is stored) |
-| `/money`        | GET, POST | Get balance / add `{ amount }` (may be negative)                                     |
-| `/rod`          | GET, POST | Get rod level / buy the next level (price deducted atomically)                       |
-| `/luck`         | GET, POST | Get luck level / buy the next level                                                  |
-| `/baits`        | GET, POST | List owned baits / buy `{ bait }` (rarity index 0-4)                                 |
-| `/equippedBait` | GET, POST | Get equipped bait / equip an owned `{ bait }`                                        |
-| `/almanac`      | GET, POST | List caught fish / add `{ fish }` (no duplicates)                                    |
+| Route           | Methods           | Description                                                                                                                              |
+| --------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `/register`     | POST              | Creates a user and returns their login `token` (shown once; only its hash is stored)                                                     |
+| `/money`        | GET, POST         | Get balance / add `{ amount }` (may be negative)                                                                                         |
+| `/rod`          | GET, POST         | Get rod level / buy the next level (price deducted atomically)                                                                           |
+| `/luck`         | GET, POST         | Get luck level / buy the next level                                                                                                      |
+| `/baits`        | GET, POST         | List owned baits / buy `{ bait }` (rarity index 0-4)                                                                                     |
+| `/equippedBait` | GET, POST         | Get equipped bait / equip an owned `{ bait }`                                                                                            |
+| `/almanac`      | GET, POST         | List the ids of caught fish / add `{ fishId }` (no duplicates)                                                                           |
+| `/inventory`    | GET, POST, DELETE | List unsold fish with quantities / add one `{ fishId }` / sell one `{ fishId }` (its price from the `Fish` collection is added to money) |
+| `/state`        | GET               | The Pico's starting state in one JSON object: `{ money, rod, luck, baits, equippedBait, almanac }` (read from a single user document, so it is consistent) |
+| `/fish`         | GET               | List every fish in the game (`id`, `name`, `img`, `rarity`, `price`)                                                                     |
 
 Purchases use a single atomic update, so players can't overspend or buy the same bait twice. Errors are returned as JSON with a `message`.
 
-### TODO: inventory route
+### Almanac and inventory
 
-Not implemented yet. It will manage the fish the player has caught but not sold (currently the `fish` field on the user model, which will be renamed to `inventory`), separate from the almanac.
+The almanac (every fish the player has ever caught) and the inventory (fish caught but not yet sold) are separate lists. Both reference fish by id. The inventory also stores a `quantity` per fish: adding a fish already held increments it, and selling decrements it and removes the entry at 0. The website joins the ids from `/almanac` with the full list from `/fish` to draw the almanac.
 
-| Route        | Method | Description                                                          |
-| ------------ | ------ | -------------------------------------------------------------------- |
-| `/inventory` | GET    | See all fish in the inventory                                        |
-| `/inventory` | POST   | Add one fish to the inventory                                        |
-| `/inventory` | DELETE | Sell a fish: remove it from the inventory (and add its price to money) |
+### TODO: identify fish by id instead of name
+
+**The code does not work this way yet.** Today fish are identified by `name`: `POST /almanac` and `POST /inventory` take a whole fish object, `DELETE /inventory` takes a `name`, the user's `almanac` and `inventory` store full copies of each fish (`name`, `img`, `rarity`, `price`), and the frontend reads the fish list from `frontend/src/fishData.json`. Everything in this README about `fishId`, the `Fish` collection and `GET /fish` describes the target, not the current state. To get there:
+
+- [ ] Add a `Fish` model (`_id` is the numeric fish id, plus `name`, `img`, `rarity`, `price`) and a one-off script that seeds it from `fishData.json`, with an id per fish.
+- [ ] Change `almanac` on the user model to a list of fish ids, and `inventory` to a list of `{ fish: id, quantity }`. Remove the embedded fish schemas.
+- [ ] Change `POST /almanac`, `POST /inventory` and `DELETE /inventory` to take `{ fishId }`, check the fish exists, and read the price from the `Fish` collection.
+- [ ] Add `GET /fish`.
+- [ ] Change the frontend to fetch fish from `GET /fish` and ids from `/almanac` and `/inventory`, and stop importing `fishData.json`.
+- [ ] Generate the Pico's trimmed fish list (`id`, `rarity`, `name`), then delete `fishData.json`.
+- [ ] Existing users' data was stored in the old shape, so it needs to be migrated or wiped.
+
+### TODO: state endpoint and MQTT
+
+None of the MQTT design or `GET /state` exists in the code yet (the backend has no MQTT dependency).
+
+- [ ] Add `GET /state`, returning `{ money, rod, luck, baits, equippedBait, almanac }` from one user document.
+- [ ] Add the backend MQTT module: connect to the broker, subscribe to `picoAssignmentDWL/+/catch` and add each caught fish to the player's inventory and almanac.
+- [ ] Publish a `state` message after every rod, luck, bait, equip and almanac change.
+- [ ] Make the broker host and port configurable on both the backend and the Pico.
+- [ ] Add reconnect handling on both sides.
 
 ## Signing in and registering
 
 The RFID card itself holds the player's token, so the card is the account. When a card is scanned, the Pico does the following:
 
 1. Read the card.
-2. **Empty card (new player):** the Pico makes an HTTP request to `POST /api/register` (this is the only call that doesn't go over MQTT) and writes the returned un-hashed token to the card. It then sends that token to the website.
-3. **Card has a value (returning player):** the Pico treats the value as the token and sends it to the website.
-4. The website sends the token as a Bearer token with each API request, and the backend middleware authenticates it (see [Backend API](#backend-api)).
+2. **Empty card (new player):** the Pico makes an HTTP request to `POST /api/register` and writes the returned un-hashed token to the card.
+3. **Card has a value (returning player):** the Pico treats the value as the token.
+4. **Load the starting state:** the Pico subscribes to its MQTT `state` topic first, then makes an HTTP request to `GET /api/state` with the token as a Bearer token, and keeps the response in memory (see [MQTT](#mqtt)). If the backend answers `401`, the card's token is unknown (for example the database was wiped), so the Pico treats the card as invalid and doesn't start the game.
+5. The Pico sends the token to the website.
+6. The website sends the token as a Bearer token with each API request, and the backend middleware authenticates it (see [Backend API](#backend-api)).
+
+These are the only HTTP calls the Pico makes. Both happen once at login, where the extra latency doesn't matter; everything during play goes over MQTT.
 
 Logging out:
 
@@ -138,22 +180,67 @@ Logging out:
 
 ## MQTT
 
-The Pico connects to a HiveMQ MQTT broker over Wi-Fi. MQTT is used for two things:
+The Pico and the backend both connect to the public HiveMQ broker (`broker.hivemq.com`, TLS on port 8883, no credentials). The browser never connects to the broker. MQTT is used during play, because an HTTP request per action adds noticeable latency. It carries two things:
 
-- **Shop updates reach the Pico.** When the player buys or equips something on the website (rod, luck, bait), the Pico is told, so it always knows the current upgrades.
-- **Caught fish are sent to the inventory.** The Pico works out the random catch itself, then publishes the fish so it is added to the player's inventory (see the TODO inventory route in [Backend API](#backend-api)).
+- **Live state updates reach the Pico.** The Pico gets its starting state over HTTP at login (see [Signing in and registering](#signing-in-and-registering)). After that, when the player buys or equips something on the website (rod, luck, bait), the backend publishes the player's new state, so the Pico's copy stays current.
+- **Caught fish are sent to the inventory.** The Pico works out the random catch itself and publishes the fish's id. The backend receives it and adds the fish to the player's inventory and almanac.
 
-The Pico runs the fish selection from [randomFishSelection.md](randomFishSelection.md) (rarity, then fish), using the rod, bait and luck it received over MQTT, and the almanac to apply the new-fish boost.
+The Pico runs the fish selection from [randomFishSelection.md](randomFishSelection.md) (rarity, then fish), using the rod, bait, luck and almanac it holds in memory. It adds each newly caught fish to its own almanac straight away, so the new-fish boost works without waiting for the backend.
 
-Still to decide:
+### Topics
 
-- **Who talks to the broker on the other side:** the backend server or the website (frontend). The backend is the safer choice because it already checks the token and writes to MongoDB, while a browser would need MQTT over WebSockets.
-- **Topics and message formats**, for example one topic per player so one player's updates don't reach another's Pico.
-- **How the Pico gets the full state when it connects**, such as money, upgrades and almanac, since MQTT only delivers messages published after it subscribes (unless retained messages are used).
+All topics start with the group prefix `picoAssignmentDWL` (topic names are case-sensitive; there is no leading slash). `<id>` is the player's id: the SHA-256 hash of their token. The Pico computes it from the token on the card, and the backend already stores it as the user's `login`, so no extra identifier is needed.
+
+| Topic                          | Published by | Subscribed by | Retained | QoS |
+| ------------------------------ | ------------ | ------------- | -------- | --- |
+| `picoAssignmentDWL/<id>/state` | Backend      | Pico          | No       | 1   |
+| `picoAssignmentDWL/<id>/catch` | Pico         | Backend       | No       | 1   |
+
+The backend subscribes to `picoAssignmentDWL/+/catch` (`+` matches any player id) and takes the player from the topic. Each Pico only subscribes to its own player's `state` topic.
+
+### Messages
+
+State (backend → Pico), published after every successful rod, luck, bait or equip change and after every almanac change. Each message is a full snapshot, never a diff, so applying it twice gives the same result and a missed message is fixed by the next one:
+
+```json
+{
+    "rod": 2,
+    "luck": 1,
+    "equippedBait": 3,
+    "baits": [0, 3],
+    "almanac": [0, 4, 17]
+}
+```
+
+`almanac` is the list of caught fish ids, used for the new-fish boost. Money isn't included, because the Pico doesn't need it.
+
+Catch (Pico → backend):
+
+```json
+{ "fishId": 17 }
+```
+
+The backend looks the fish up in the `Fish` collection and rejects unknown ids, so the Pico never supplies a name or price.
+
+### Keeping the Pico's state current
+
+The starting state comes from `GET /api/state`, not from the broker, so nothing depends on the broker remembering messages (state messages are not retained). The Pico follows these rules:
+
+- **Subscribe first, then fetch.** If the player buys something between the two steps, the change arrives over MQTT instead of being missed. The HTTP response is the baseline and any later MQTT state message overwrites it.
+- **Refetch after a reconnect.** If the Pico's MQTT connection drops and comes back, it may have missed updates, so it calls `GET /api/state` again. The public broker gives no uptime guarantee and may drop messages, and clients are expected to reconnect on their own.
+- **Keep the connection alive.** The Pico mostly listens between casts, so it calls `ping()` regularly and checks for messages in the game loop without blocking.
+
+### Website updates
+
+The Pico's catches arrive at the backend, not the browser, so the website polls `GET /api/inventory` every few seconds to show new fish.
+
+### Security
+
+The connection to the broker is encrypted with TLS, but the broker is public and has no accounts: anyone who knows a topic can read it and publish to it. The player id in the topic is therefore the only protection, so it is a hash and not guessable, and nothing sensitive (tokens, passwords) is ever put in a message. State and catches only contain game data.
 
 ### CORS
 
-The backend currently only allows requests from `http://localhost:5173` ([server.ts](backend/src/server.ts)). `POST /api/register` is called by the Pico, not a browser, so CORS doesn't block it. But if the website and backend are no longer both on localhost (for example the website is served from another address, or the browser talks to the broker directly), the allowed origin needs to be reconfigured.
+The backend currently only allows requests from `http://localhost:5173` ([server.ts](backend/src/server.ts)). `POST /api/register` is called by the Pico, not a browser, so CORS doesn't block it. MQTT is between the Pico, the broker and the backend, so it isn't affected either. If the website and backend are no longer both on localhost (for example the website is served from another address), the allowed origin needs to be reconfigured.
 
 ## Pico serial protocol
 
