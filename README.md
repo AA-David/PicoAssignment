@@ -72,8 +72,9 @@ The same single button is used for every step of a cast.
 | `backend/src/models/`            | `User` schema (money, rod, luck, baits, almanac, inventory) and the `Fish` model |
 | `backend/src/routes/`            | API routes                                                                       |
 | `backend/src/controllers/`       | Request handlers                                                                 |
+| `pico/`                          | `fish.json`: the Pico's trimmed fish list (`_id`, `rarity`, `name`)              |
 | `frontend/`                      | Vite + React + Tailwind dashboard                                                |
-| `frontend/src/components/`       | `Shop`, `BaitUpgradeMenu`, `Almanac`, `Fish`                                     |
+| `frontend/src/components/`       | `Shop`, `BaitUpgradeMenu`, `FishGrid` (almanac and inventory tabs), `Fish`       |
 | `frontend/src/utils/readPico.ts` | Web Serial reader that receives the token from the Pico                          |
 | `frontend/public/`               | Fish, gear and background sprites (the `Fish` documents hold the file name)      |
 | `randomFishSelection.md`         | Full design of the catch odds and balancing tables                               |
@@ -105,13 +106,13 @@ There are 100 fish: 27 common, 35 uncommon, 23 rare, 11 epic and 4 legendary.
 
 ### Fish data
 
-> This describes the target design. The code still identifies fish by name; see [TODO: identify fish by id instead of name](#todo-identify-fish-by-id-instead-of-name).
+Every fish is a document in the `Fish` collection in MongoDB, which is the single source of truth for fish data (`name`, `img`, `rarity`, `price`). A fish's id is its MongoDB `_id`: an `ObjectId` that MongoDB generates when the fish is inserted. The API sends it as a 24-character hex string, for example `"665f1c2e9b1d4a0012ab34cd"`. The website and backend read fish from the database; nothing reads a fish JSON file at runtime.
 
-Every fish has a numeric `id`. The `Fish` collection in MongoDB is the single source of truth for fish data (`name`, `img`, `rarity`, `price`), and the fish's `id` is its document `_id`. The website and backend read fish from the database; nothing reads a fish JSON file at runtime.
+Because MongoDB generates the ids, the Pico can't know them in advance. The Pico keeps a trimmed copy of the fish list on its flash, with only what it needs: `_id`, `rarity` and `name` (for the LCD). That copy is [pico/fish.json](pico/fish.json), exported from the database. Fish are identified by `_id` everywhere.
 
-The Pico keeps its own trimmed copy of the fish list stored on its flash, with only what it needs: `id`, `rarity` and `name` (for the LCD). Fish are identified by `id` everywhere, and ids are append-only: never reorder or delete a fish, because the Pico's copy and the database must agree on what each id means.
+The Pico's copy is only valid for the database it was exported from. If the `Fish` collection is wiped and reseeded, every fish gets a new id, so the Pico's list must be re-exported and reflashed. Never delete a fish or insert it twice. The repo has no seed script: the collection is filled with a one-off command, and if it ever has to be seeded again it should upsert by `name`, so it doesn't create duplicates or change the ids of existing fish.
 
-The original `fishData.json` is only used once, to seed the `Fish` collection and to produce the Pico's copy, and is then deleted. To add a fish later, insert it into the database with the next free id, then regenerate the Pico's copy from `GET /api/fish`. Update the backend first and the Pico second, so the Pico never sends an id the backend doesn't know.
+To add a fish, insert it into the database, then re-export the Pico's copy to `pico/fish.json` (the same `_id`, `rarity` and `name` fields, from `GET /api/fish` or the collection). Update the backend first and the Pico second, so the Pico never sends an id the backend doesn't know.
 
 Users store only fish ids (and quantities for the inventory), not copies of fish data. Prices are always read from the `Fish` collection, never from the client or the Pico.
 
@@ -119,36 +120,28 @@ Users store only fish ids (and quantities for the inventory), not copies of fish
 
 Base URL: `http://localhost:8000/api`. There is no login route. Every route except `/register` goes through the `requireAuth` middleware, which reads the `Authorization: Bearer <token>` header, hashes the token, finds the matching user and attaches their id to the request. A missing or unknown token gets a `401`.
 
-| Route           | Methods           | Description                                                                                                                              |
-| --------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `/register`     | POST              | Creates a user and returns their login `token` (shown once; only its hash is stored)                                                     |
-| `/money`        | GET, POST         | Get balance / add `{ amount }` (may be negative)                                                                                         |
-| `/rod`          | GET, POST         | Get rod level / buy the next level (price deducted atomically)                                                                           |
-| `/luck`         | GET, POST         | Get luck level / buy the next level                                                                                                      |
-| `/baits`        | GET, POST         | List owned baits / buy `{ bait }` (rarity index 0-4)                                                                                     |
-| `/equippedBait` | GET, POST         | Get equipped bait / equip an owned `{ bait }`                                                                                            |
-| `/almanac`      | GET, POST         | List the ids of caught fish / add `{ fishId }` (no duplicates)                                                                           |
-| `/inventory`    | GET, POST, DELETE | List unsold fish with quantities / add one `{ fishId }` / sell one `{ fishId }` (its price from the `Fish` collection is added to money) |
+| Route           | Methods           | Description                                                                                                                                                |
+| --------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/register`     | POST              | Creates a user and returns their login `token` (shown once; only its hash is stored)                                                                       |
+| `/money`        | GET, POST         | Get balance / add `{ amount }` (may be negative)                                                                                                           |
+| `/rod`          | GET, POST         | Get rod level / buy the next level (price deducted atomically)                                                                                             |
+| `/luck`         | GET, POST         | Get luck level / buy the next level                                                                                                                        |
+| `/baits`        | GET, POST         | List owned baits / buy `{ bait }` (rarity index 0-4)                                                                                                       |
+| `/equippedBait` | GET, POST         | Get equipped bait / equip an owned `{ bait }`                                                                                                              |
+| `/almanac`      | GET, POST         | List the ids of caught fish / add `{ fishId }` (no duplicates)                                                                                             |
+| `/inventory`    | GET, POST, DELETE | List unsold fish as `{ fish: id, quantity }` entries / add one `{ fishId }` / sell one `{ fishId }` (its price from the `Fish` collection is added to money) |
 | `/state`        | GET               | The Pico's starting state in one JSON object: `{ money, rod, luck, baits, equippedBait, almanac }` (read from a single user document, so it is consistent) |
-| `/fish`         | GET               | List every fish in the game (`id`, `name`, `img`, `rarity`, `price`)                                                                     |
+| `/fish`         | GET               | List every fish in the game as `{ fish: [{ _id, name, img, rarity, price }] }`                                                                             |
 
 Purchases use a single atomic update, so players can't overspend or buy the same bait twice. Errors are returned as JSON with a `message`.
 
+Every route that takes a `fishId` (`POST /almanac`, `POST /inventory`, `DELETE /inventory`) checks that it is a valid ObjectId hex string (otherwise `400`) and that the fish exists in the `Fish` collection (otherwise `404`). `GET /almanac` and `GET /inventory` return ids only; the fish data itself comes from `GET /fish`.
+
 ### Almanac and inventory
 
-The almanac (every fish the player has ever caught) and the inventory (fish caught but not yet sold) are separate lists. Both reference fish by id. The inventory also stores a `quantity` per fish: adding a fish already held increments it, and selling decrements it and removes the entry at 0. The website joins the ids from `/almanac` with the full list from `/fish` to draw the almanac.
+The almanac (every fish the player has ever caught) and the inventory (fish caught but not yet sold) are separate lists. Both reference fish by id. The inventory also stores a `quantity` per fish: adding a fish already held increments it, and selling decrements it and removes the entry at 0. The website fetches the full list from `/fish` once after login, keeps it in a lookup by `_id`, and uses it to draw both lists: the almanac shows every fish and unlocks the ones whose id is in `/almanac`, and the inventory looks up each entry's `fish` id. The backend never populates fish data into the user's lists, and the website makes no per-fish requests. While logged in, the website re-fetches the visible tab (almanac or inventory) every 15 seconds to show new catches.
 
-### TODO: identify fish by id instead of name
-
-**The code does not work this way yet.** Today fish are identified by `name`: `POST /almanac` and `POST /inventory` take a whole fish object, `DELETE /inventory` takes a `name`, the user's `almanac` and `inventory` store full copies of each fish (`name`, `img`, `rarity`, `price`), and the frontend reads the fish list from `frontend/src/fishData.json`. Everything in this README about `fishId`, the `Fish` collection and `GET /fish` describes the target, not the current state. To get there:
-
-- [ ] Add a `Fish` model (`_id` is the numeric fish id, plus `name`, `img`, `rarity`, `price`) and a one-off script that seeds it from `fishData.json`, with an id per fish.
-- [ ] Change `almanac` on the user model to a list of fish ids, and `inventory` to a list of `{ fish: id, quantity }`. Remove the embedded fish schemas.
-- [ ] Change `POST /almanac`, `POST /inventory` and `DELETE /inventory` to take `{ fishId }`, check the fish exists, and read the price from the `Fish` collection.
-- [ ] Add `GET /fish`.
-- [ ] Change the frontend to fetch fish from `GET /fish` and ids from `/almanac` and `/inventory`, and stop importing `fishData.json`.
-- [ ] Generate the Pico's trimmed fish list (`id`, `rarity`, `name`), then delete `fishData.json`.
-- [ ] Existing users' data was stored in the old shape, so it needs to be migrated or wiped.
+Inventory updates are two atomic steps, with no transaction: increment the entry's `quantity` if the fish is already held, otherwise push a new `{ fish, quantity: 1 }`. Selling decrements the quantity in one atomic update that also adds the price, then removes entries that have reached 0. The schema's `min: 1` on `quantity` isn't checked by these update queries (Mongoose only runs validators on `save` and `create`, or when `runValidators` is set), so the real guard against going below 0 is the `quantity >= 1` condition in the sell filter.
 
 ### TODO: state endpoint and MQTT
 
@@ -208,19 +201,21 @@ State (backend → Pico), published after every successful rod, luck, bait or eq
     "luck": 1,
     "equippedBait": 3,
     "baits": [0, 3],
-    "almanac": [0, 4, 17]
+    "almanac": ["665f1c2e9b1d4a0012ab34cd", "665f1c2e9b1d4a0012ab34ce"]
 }
 ```
 
-`almanac` is the list of caught fish ids, used for the new-fish boost. Money isn't included, because the Pico doesn't need it.
+`almanac` is the list of caught fish ids (the 24-character hex `_id` strings), used for the new-fish boost. Money isn't included, because the Pico doesn't need it.
 
 Catch (Pico → backend):
 
 ```json
-{ "fishId": 17 }
+{ "fishId": "665f1c2e9b1d4a0012ab34cd" }
 ```
 
-The backend looks the fish up in the `Fish` collection and rejects unknown ids, so the Pico never supplies a name or price.
+The backend rejects ids that aren't valid ObjectId hex strings, looks the fish up in the `Fish` collection and rejects unknown ids, so the Pico never supplies a name or price.
+
+QoS 1 is "at least once", so a catch could occasionally be delivered twice and add a duplicate fish. This is accepted: it needs a lost acknowledgement, it costs at most one extra fish in the player's own account, and avoiding it (QoS 0 or a unique id per catch) is worse or more work. To make it unlikely, the Pico shouldn't retry a publish by itself and the backend should connect with a clean session.
 
 ### Keeping the Pico's state current
 

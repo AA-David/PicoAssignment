@@ -7,21 +7,15 @@ import {
     STARTER_BAIT,
 } from '../config/game.js';
 
-export interface IFish {
-    name: string;
-    img: string;
-    rarity: number;
-    price: number;
-}
-
-export interface IInventoryFish extends IFish {
+export interface IInventoryFish {
+    fish: mongoose.Types.ObjectId;
     quantity: number;
 }
 
 interface IUser {
     login: string;
     luck: number;
-    almanac: IFish[];
+    almanac: mongoose.Types.ObjectId[];
     money: number;
     rod: number;
     baits: number[];
@@ -29,25 +23,16 @@ interface IUser {
     inventory: IInventoryFish[];
 }
 
-const fishFields = {
-    name: { type: String, required: true },
-    img: { type: String, required: true },
-    rarity: {
-        type: Number,
-        required: true,
-        min: MIN_RARITY,
-        max: MAX_RARITY,
-    },
-    price: { type: Number, required: true },
-};
-
-const FishSchema = new mongoose.Schema<IFish>(fishFields, { _id: false });
-
 const InventoryFishSchema = new mongoose.Schema<IInventoryFish>(
     {
-        ...fishFields,
+        fish: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Fish',
+            required: true,
+        },
         quantity: { type: Number, required: true, default: 1, min: 1 },
     },
+    // Fish field already contains _id
     { _id: false },
 );
 
@@ -59,7 +44,13 @@ const UserSchema = new mongoose.Schema<IUser>({
         unique: true,
     },
     almanac: {
-        type: [FishSchema],
+        type: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Fish',
+                required: true,
+            },
+        ],
         default: [],
     },
     luck: {

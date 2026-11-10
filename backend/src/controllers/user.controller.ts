@@ -1,7 +1,6 @@
 import crypto from 'node:crypto';
 import User from '../models/user.model.js';
 import type { RequestHandler } from 'express';
-import type { IFish, IInventoryFish } from '../models/user.model.js';
 import { AppError } from '../utils/AppError.js';
 import {
     BAIT_PRICES,
@@ -11,6 +10,8 @@ import {
     ROD_PRICES,
     isValidRarity,
 } from '../config/game.js';
+import mongoose from 'mongoose';
+import Fish from '../models/fish.model.js';
 
 // Responds with a single field of the logged-in user
 const getField =
@@ -30,8 +31,7 @@ const getField =
         res.status(200).json({ [field]: user[field] });
     };
 
-// Raises an upgrade level by one, up to `maxLevel`, and charges the price of
-// the next level (`prices[currentLevel + 1]`)
+// Raises an upgrade level by one, up to `maxLevel`, and charges the price of the next level (`prices[currentLevel + 1]`)
 const incrementUpgrade =
     (
         field: 'luck' | 'rod',
@@ -184,21 +184,18 @@ export const getMoney: RequestHandler = getField('money');
 // @desc    Record a caught fish in the user's almanac (no duplicates)
 // @route   POST /api/almanac
 export const addToAlmanac: RequestHandler = async (req, res) => {
-    const { fish }: { fish: IFish } = req.body;
-    if (
-        !fish ||
-        !fish.name ||
-        !isValidRarity(fish.rarity) ||
-        !fish.img ||
-        typeof fish.price !== 'number' ||
-        fish.price < 0
-    ) {
-        throw new AppError('Invalid or missing fields', 400);
+    const { fishId } = req.body;
+    if (!mongoose.isObjectIdOrHexString(fishId)) {
+        throw new AppError('Invalid fish ID', 400);
+    }
+
+    if (!(await Fish.exists({ _id: fishId }))) {
+        throw new AppError('Fish not found', 404);
     }
 
     const user = await User.findByIdAndUpdate(
         req.user?.id,
-        { $addToSet: { almanac: fish } },
+        { $addToSet: { almanac: fishId } },
         {
             returnDocument: 'after',
             runValidators: true,
@@ -206,7 +203,7 @@ export const addToAlmanac: RequestHandler = async (req, res) => {
     ).lean();
 
     if (!user) throw new AppError('User not found', 404);
-    res.status(200).json({ fish });
+    res.status(200).json({ fish: fishId });
 };
 
 // @desc    Get every fish in the user's almanac
@@ -216,76 +213,74 @@ export const getAlmanac: RequestHandler = getField('almanac');
 // @desc    Add caught fish to user's inventory
 // @route   POST /api/inventory
 export const addToInventory: RequestHandler = async (req, res) => {
-    const { fish }: { fish: IInventoryFish } = req.body;
-    if (
-        !fish ||
-        !fish.name ||
-        !isValidRarity(fish.rarity) ||
-        !fish.img ||
-        typeof fish.price !== 'number' ||
-        fish.price < 0
-    ) {
-        throw new AppError('Invalid or missing fields', 400);
+    const { fishId } = req.body;
+    if (!mongoose.isObjectIdOrHexString(fishId)) {
+        throw new AppError('Invalid fish ID', 400);
     }
 
-    const options = { returnDocument: 'after', runValidators: true } as const;
+    if (!(await Fish.exists({ _id: fishId }))) {
+        throw new AppError('Fish not found', 404);
+    }
 
     // If the fish is already in the inventory, increment its quantity
     let user = await User.findOneAndUpdate(
-        { _id: req.user?.id, 'inventory.name': fish.name },
+        {
+            _id: req.user?.id,
+            'inventory.fish': fishId,
+        },
         { $inc: { 'inventory.$.quantity': 1 } },
-        options,
+        {
+            returnDocument: 'after',
+            runValidators: true,
+        },
     ).lean();
 
     // Otherwise add it as a new entry with quantity 1
     if (!user) {
         user = await User.findByIdAndUpdate(
             req.user?.id,
-            { $push: { inventory: { ...fish, quantity: 1 } } },
-            options,
+            { $push: { inventory: { fish: fishId, quantity: 1 } } },
+            {
+                returnDocument: 'after',
+                runValidators: true,
+            },
         ).lean();
     }
 
     if (!user) throw new AppError('User not found', 404);
-    res.status(200).json({ fish });
+    res.status(200).json({ fishId });
 };
 
 // @desc    Sell one fish from inventory: decrement its quantity (removing the entry at 0) and add its stored price to the user's money
 // @route   DELETE /api/inventory
 export const sellFish: RequestHandler = async (req, res) => {
-    const { name } = req.body;
-    if (typeof name !== 'string' || !name) {
-        throw new AppError('Invalid or missing fields', 400);
+    const { fishId } = req.body;
+    if (!mongoose.isObjectIdOrHexString(fishId)) {
+        throw new AppError('Invalid fish ID', 400);
     }
 
-    const owned = {
-        _id: req.user?.id,
-        inventory: { $elemMatch: { name, quantity: { $gte: 1 } } },
-    };
+    const fish = await Fish.findById(fishId).select('price').lean();
+    if (!fish) throw new AppError('Fish not found', 404);
 
-    // Read the stored price so the client can't set its own
-    const owner = await User.findOne(owned, { 'inventory.$': 1 }).lean();
-    const price = owner?.inventory[0]?.price;
-    if (price === undefined) {
-        throw new AppError('User not found or fish not owned', 404);
-    }
-
-    // The filter and the update run as one atomic operation, so the quantity
-    // can't go below 0 and the money can't be paid out twice
+    // The filter and the update run atomically
     const user = await User.findOneAndUpdate(
-        owned,
-        { $inc: { 'inventory.$.quantity': -1, money: price } },
+        {
+            _id: req.user?.id,
+            inventory: { $elemMatch: { fish: fishId, quantity: { $gte: 1 } } },
+        },
+        { $inc: { 'inventory.$.quantity': -1, money: fish.price } },
         { returnDocument: 'after' },
     ).lean();
     if (!user) throw new AppError('User not found or fish not owned', 404);
 
-    // Drop sold-out entries (safe to repeat; harmless if it ever fails)
-    const { inventory } =
-        (await User.findByIdAndUpdate(
-            req.user?.id,
-            { $pull: { inventory: { quantity: 0 } } },
-            { returnDocument: 'after' },
-        ).lean()) ?? user;
+    // Drop sold-out entries
+    const cleaned = await User.findByIdAndUpdate(
+        req.user?.id,
+        { $pull: { inventory: { quantity: 0 } } },
+        { returnDocument: 'after' },
+    ).lean();
+
+    const { inventory } = cleaned ?? user;
 
     res.status(200).json({ inventory, money: user.money });
 };
@@ -293,3 +288,10 @@ export const sellFish: RequestHandler = async (req, res) => {
 // @desc    Get every fish in the user's inventory
 // @route   GET /api/inventory
 export const getInventory: RequestHandler = getField('inventory');
+
+// @desc    Get every fish in the game
+// @route   GET /api/fish
+export const getFish: RequestHandler = async (req, res) => {
+    const fish = await Fish.find({}).lean();
+    res.status(200).json({ fish });
+};

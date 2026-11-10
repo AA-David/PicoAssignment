@@ -10,7 +10,7 @@ export default function useApiRequest(
 ) {
     return useCallback(
         async (
-            endpoint: keyof IStats,
+            endpoint: keyof IStats | 'fish',
             method: 'GET' | 'POST' | 'DELETE',
             body?: any,
         ): Promise<ApiResult> => {
