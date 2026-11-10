@@ -7,6 +7,7 @@ import {
     equipBait,
     getAlmanac,
     getEquippedBait,
+    getFish,
     getInventory,
     getLuckLevel,
     getMoney,
@@ -39,5 +40,6 @@ router
     .get(getInventory)
     .post(addToInventory)
     .delete(sellFish);
+router.route('/fish').all(requireAuth).get(getFish);
 
 export default router;

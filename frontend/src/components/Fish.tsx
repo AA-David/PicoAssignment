@@ -29,7 +29,7 @@ export default function Fish({ fish, unlocked, quantity, onSell }: FishProps) {
                 <div className='absolute inset-0 flex justify-between items-center px-2 pointer-events-none'>
                     {onSell && (
                         <button
-                            className='invisible group-hover:visible ml-2 hover:bg-[rgba(0,0,0,0.5)] p-1 border-2 w-fit text-lg hover:cursor-pointer pointer-events-auto'
+                            className='invisible group-hover:visible hover:bg-[rgba(0,0,0,0.5)] ml-2 p-1 border-2 w-fit text-lg hover:cursor-pointer pointer-events-auto'
                             onClick={onSell}
                         >
                             SELL
