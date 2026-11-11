@@ -1,4 +1,4 @@
-// Single source of truth for game rules shared by the models and controllers.
+// Single source of truth for game rules shared by the models and services.
 
 // Rarity tiers, lowest to highest. A rarity is stored as its index here.
 export const RARITIES = [
