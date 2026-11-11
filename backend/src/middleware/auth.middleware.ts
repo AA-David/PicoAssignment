@@ -17,6 +17,6 @@ export const requireAuth: RequestHandler = async (req, res, next) => {
         throw new AppError('Invalid token', 401);
     }
 
-    req.user = { id: user._id.toString() };
+    req.user = { id: user._id.toString(), login: hash };
     next();
 };

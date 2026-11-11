@@ -1,45 +1,47 @@
-import { Router } from 'express';
+import { Router } from "express";
 import {
-    addToAlmanac,
-    addToInventory,
-    adjustMoney,
-    buyBait,
-    equipBait,
-    getAlmanac,
-    getEquippedBait,
-    getFish,
-    getInventory,
-    getLuckLevel,
-    getMoney,
-    getOwnedBaits,
-    getRodLevel,
-    registerUser,
-    sellFish,
-    upgradeLuck,
-    upgradeRod,
-} from '../controllers/user.controller.js';
-import { requireAuth } from '../middleware/auth.middleware.js';
+  deleteInventory,
+  getAlmanac,
+  getBaits,
+  getEquippedBait,
+  getFish,
+  getInventory,
+  getLuck,
+  getMoney,
+  getRod,
+  getState,
+  postAlmanac,
+  postBaits,
+  postEquippedBait,
+  postInventory,
+  postLuck,
+  postMoney,
+  postRegister,
+  postRod,
+} from "../controllers/user.controller.js";
+import { requireAuth } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
-router.post('/register', registerUser);
+router.post("/register", postRegister);
 
-router.route('/luck').all(requireAuth).get(getLuckLevel).post(upgradeLuck);
-router.route('/rod').all(requireAuth).get(getRodLevel).post(upgradeRod);
+router.route("/luck").all(requireAuth).get(getLuck).post(postLuck);
+router.route("/rod").all(requireAuth).get(getRod).post(postRod);
 router
-    .route('/equippedBait')
-    .all(requireAuth)
-    .get(getEquippedBait)
-    .post(equipBait);
-router.route('/baits').all(requireAuth).get(getOwnedBaits).post(buyBait);
-router.route('/money').all(requireAuth).get(getMoney).post(adjustMoney);
-router.route('/almanac').all(requireAuth).get(getAlmanac).post(addToAlmanac);
+  .route("/equippedBait")
+  .all(requireAuth)
+  .get(getEquippedBait)
+  .post(postEquippedBait);
+router.route("/baits").all(requireAuth).get(getBaits).post(postBaits);
+router.route("/money").all(requireAuth).get(getMoney).post(postMoney);
+router.route("/almanac").all(requireAuth).get(getAlmanac).post(postAlmanac);
 router
-    .route('/inventory')
-    .all(requireAuth)
-    .get(getInventory)
-    .post(addToInventory)
-    .delete(sellFish);
-router.route('/fish').all(requireAuth).get(getFish);
+  .route("/inventory")
+  .all(requireAuth)
+  .get(getInventory)
+  .post(postInventory)
+  .delete(deleteInventory);
+router.route("/fish").all(requireAuth).get(getFish);
+router.route("/state").all(requireAuth).get(getState);
 
 export default router;

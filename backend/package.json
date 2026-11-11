@@ -6,7 +6,7 @@
     "scripts": {
         "dev": "tsx watch --env-file=.env src/server.ts",
         "build": "tsc",
-        "start": "node dist/index.js"
+        "start": "node dist/server.js"
     },
     "keywords": [],
     "author": "",
@@ -15,7 +15,8 @@
     "dependencies": {
         "cors": "^2.8.6",
         "express": "^5.3.0",
-        "mongoose": "^9.11.4"
+        "mongoose": "^9.11.4",
+        "mqtt": "^5.16.1"
     },
     "devDependencies": {
         "@types/cors": "^2.8.19",
