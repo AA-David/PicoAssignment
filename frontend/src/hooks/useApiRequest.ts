@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { API_URL } from '../config';
 
 export type ApiResult = { ok: true } | { ok: false; error: string };
 
@@ -16,7 +17,7 @@ export default function useApiRequest(
         ): Promise<ApiResult> => {
             try {
                 const response = await fetch(
-                    `http://localhost:8000/api/${endpoint}`,
+                    `${API_URL}/api/${endpoint}`,
                     {
                         method: method,
                         headers: {

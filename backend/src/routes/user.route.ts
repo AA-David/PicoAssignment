@@ -10,12 +10,9 @@ import {
   getMoney,
   getRod,
   getState,
-  postAlmanac,
   postBaits,
   postEquippedBait,
-  postInventory,
   postLuck,
-  postMoney,
   postRegister,
   postRod,
 } from "../controllers/user.controller.js";
@@ -33,13 +30,12 @@ router
   .get(getEquippedBait)
   .post(postEquippedBait);
 router.route("/baits").all(requireAuth).get(getBaits).post(postBaits);
-router.route("/money").all(requireAuth).get(getMoney).post(postMoney);
-router.route("/almanac").all(requireAuth).get(getAlmanac).post(postAlmanac);
+router.route("/money").all(requireAuth).get(getMoney);
+router.route("/almanac").all(requireAuth).get(getAlmanac);
 router
   .route("/inventory")
   .all(requireAuth)
   .get(getInventory)
-  .post(postInventory)
   .delete(deleteInventory);
 router.route("/fish").all(requireAuth).get(getFish);
 router.route("/state").all(requireAuth).get(getState);

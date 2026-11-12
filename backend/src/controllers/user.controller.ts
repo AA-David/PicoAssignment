@@ -64,43 +64,14 @@ export const getMoney: RequestHandler = async (req, res) => {
     res.status(200).json(await userService.getMoney(req.user!.id));
 };
 
-// @route   POST /api/money
-export const postMoney: RequestHandler = async (req, res) => {
-    res.status(200).json(
-        await userService.adjustMoney(
-            req.user!.id,
-            req.user!.login,
-            req.body.amount,
-        ),
-    );
-};
-
 // @route   GET /api/almanac
 export const getAlmanac: RequestHandler = async (req, res) => {
     res.status(200).json(await userService.getAlmanac(req.user!.id));
 };
 
-// @route   POST /api/almanac
-export const postAlmanac: RequestHandler = async (req, res) => {
-    res.status(200).json(
-        await userService.addToAlmanac(
-            req.user!.id,
-            req.user!.login,
-            req.body.fishId,
-        ),
-    );
-};
-
 // @route   GET /api/inventory
 export const getInventory: RequestHandler = async (req, res) => {
     res.status(200).json(await userService.getInventory(req.user!.id));
-};
-
-// @route   POST /api/inventory
-export const postInventory: RequestHandler = async (req, res) => {
-    res.status(200).json(
-        await userService.addToInventory(req.user!.id, req.body.fishId),
-    );
 };
 
 // @route   DELETE /api/inventory
