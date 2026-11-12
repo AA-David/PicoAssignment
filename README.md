@@ -136,19 +136,19 @@ Base URL: `http://localhost:8000/api`. There is no login route. Every route exce
 | Route           | Methods           | Description                                                                                                                                                  |
 | --------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `/register`     | POST              | Creates a user and returns their login `token`                                                                                                               |
-| `/money`        | GET, POST         | Get balance / add `{ amount }` (may be negative)                                                                                                             |
+| `/money`        | GET               | Get balance                                                                                                                                                  |
 | `/rod`          | GET, POST         | Get rod level / buy the next level                                                                                                                           |
 | `/luck`         | GET, POST         | Get luck level / buy the next level                                                                                                                          |
 | `/baits`        | GET, POST         | List owned baits / buy `{ bait }`                                                                                                                            |
 | `/equippedBait` | GET, POST         | Get equipped bait / equip an owned `{ bait }`                                                                                                                |
-| `/almanac`      | GET, POST         | List the ids of caught fish / add `{ fishId }` (no duplicates)                                                                                               |
-| `/inventory`    | GET, POST, DELETE | List unsold fish as `{ fish: id, quantity }` entries / add one `{ fishId }` / sell one `{ fishId }` (its price from the `Fish` collection is added to money) |
+| `/almanac`      | GET               | List the ids of caught fish                                                                                                                                  |
+| `/inventory`    | GET, DELETE       | List unsold fish as `{ fish: id, quantity }` entries / sell one `{ fishId }` (its price from the `Fish` collection is added to money)                        |
 | `/state`        | GET               | The Pico's starting state in one JSON object: `{ money, rod, luck, baits, equippedBait, almanac }`                                                           |
 | `/fish`         | GET               | List every fish in the game as `{ fish: [{ _id, name, img, rarity, price }] }`                                                                               |
 
 Purchases use a single atomic update, so players can't overspend or buy the same bait twice.
 
-Every route that takes a `fishId` (`POST /almanac`, `POST /inventory`, `DELETE /inventory`) checks that it is a valid ObjectId hex string (otherwise `400`) and that the fish exists in the `Fish` collection (otherwise `404`). `GET /almanac` and `GET /inventory` return ids only; the fish data itself comes from `GET /fish`.
+Fish are only added to the almanac and inventory by MQTT catches, never over HTTP, so players can't give themselves fish. Every route that takes a `fishId` (`DELETE /inventory`, and the MQTT catch handler) checks that it is a valid ObjectId hex string (otherwise `400`) and that the fish exists in the `Fish` collection (otherwise `404`). `GET /almanac` and `GET /inventory` return ids only; the fish data itself comes from `GET /fish`.
 
 ### Almanac and inventory
 
@@ -224,7 +224,7 @@ QoS 1 is "at least once", so a catch could occasionally be delivered twice and a
 
 The backend side is [backend/src/mqtt/mqtt.ts](backend/src/mqtt/mqtt.ts). `startMqtt()` is called from [server.ts](backend/src/server.ts) once the database is connected. The broker address (`mqtts://broker.hivemq.com:8883`) is set in that file, and on the Pico it is the `BROKER` constant in [pico/mqtt.py](pico/mqtt.py).
 
-- **Catches.** For every message on `picoAssignmentDWL/+/catch`, the backend parses the JSON, finds the user whose `login` equals the id in the topic, then calls the same `addToInventory` and `addToAlmanac` service functions the HTTP routes use ([user.service.ts](backend/src/services/user.service.ts)). Invalid JSON, unknown players and invalid or unknown fish ids are ignored or logged.
+- **Catches.** For every message on `picoAssignmentDWL/+/catch`, the backend parses the JSON, finds the user whose `login` equals the id in the topic, then calls the same `addToInventory` and `addToAlmanac` service functions ([user.service.ts](backend/src/services/user.service.ts)). Invalid JSON, unknown players and invalid or unknown fish ids are ignored or logged.
 - **State.** The service functions that change the rod, luck, baits, equipped bait, or add to the almanac, call `publishState(login, state)` after the update succeeds. The HTTP controllers pass `req.user.login`, which the auth middleware sets to the token hash, and the catch handler passes the id from the topic.
 - **Connection.** The backend uses a clean session. The client reconnects by itself and subscribes again each time it connects, and `reconnect`, `offline` and `error` events are logged. Catches published while the backend is offline are not queued by the broker, so they are lost.
 

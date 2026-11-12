@@ -156,23 +156,6 @@ export const buyBait = async (userId: string, login: string, bait: unknown) => {
 
 export const getBaits = (userId: string) => getField(userId, 'baits');
 
-// Adds `amount` (can be negative) to the user's money
-export const adjustMoney = async (
-    userId: string,
-    login: string,
-    amount: unknown,
-) => {
-    if (typeof amount !== 'number') throw new AppError('Invalid fields', 400);
-    const user = await User.findByIdAndUpdate(
-        userId,
-        { $inc: { money: amount } },
-        { returnDocument: 'after', runValidators: true },
-    ).lean();
-    if (!user) throw new AppError('User not found', 404);
-
-    return { money: user.money };
-};
-
 export const getMoney = (userId: string) => getField(userId, 'money');
 
 // Returns `fishId`, or throws unless it is a valid id of an existing fish

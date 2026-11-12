@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ApiRequest } from '../hooks/useApiRequest';
 import Fish from './Fish';
+import { API_URL } from '../config';
 
 export default function FishGrid({
     token,
@@ -13,14 +14,14 @@ export default function FishGrid({
 }) {
     const [fish, setFish] = useState<IFish[]>([]);
     const fishById = useMemo(
-        () => new Map(fish.map((f) => [f._id, f])),
+        () => new Map(fish?.map((f) => [f._id, f])),
         [fish],
     );
     const caught = useMemo(() => new Set(stats.almanac), [stats.almanac]);
     const [selection, setSelection] = useState<'alm' | 'inv'>('alm');
 
     async function getGameFish() {
-        return await fetch('http://localhost:8000/api/fish', {
+        return await fetch(`${API_URL}/api/fish`, {
             headers: {
                 Authorization: `Bearer ${token}`,
             },
@@ -72,7 +73,7 @@ export default function FishGrid({
 
             <div className='justify-center gap-5 grid grid-cols-[repeat(auto-fill,160px)]'>
                 {selection === 'alm'
-                    ? fish.map((fish: IFish) => (
+                    ? fish?.map((fish: IFish) => (
                           <Fish
                               key={fish._id}
                               fish={fish}
