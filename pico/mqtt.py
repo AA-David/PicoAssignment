@@ -27,4 +27,4 @@ def publishFish(userHash, randomFish):
 
 	message = randomFish
 	print('Publish topic %s message %s' % (PUB_TOPIC, message))
-	mqtt.publish(topic=PUB_TOPIC, msg=message)
+	mqtt.publish(topic=PUB_TOPIC, msg=message, qos=1)
