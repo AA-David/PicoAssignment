@@ -341,13 +341,15 @@ The backend needs Node 20 or later.
 
 The backend and website are set up to deploy on Render. The Render-specific parts of the backend (`trust proxy`, the keep-alive timeout and `SIGTERM` handling) are described in [Server middleware](#server-middleware).
 
-## Parts list
+## Schematic
 
-- 2 Raspberry Pi Pico W (v1/2)
-- 2 breadboards
+<img width="1422" height="1822" alt="Pico Assignment Schematic" src="https://github.com/user-attachments/assets/fca84bd3-b23b-4e2a-9128-d12c18872d19" />
+
+### Parts list
+- 1 Raspberry Pi Pico W (v1/2)
+- 1 breadboard
 - 1 LED bar
 - 18 LEDS
-- 2 Button
+- 1 Button
 - 1 Potentiometer
-- 1 LCD screen (or 2, if the fish name and rarity are shown on separate screens)
-- 1 RFID module (plus card), not used in the end (see [RFID](#rfid))
+- 1 LCD screen
