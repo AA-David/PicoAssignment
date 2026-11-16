@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import useApiRequest from './hooks/useApiRequest';
 import FishGrid from './components/FishGrid';
 import Shop from './components/Shop';
@@ -57,11 +57,7 @@ function App() {
                     </button>
                 </div>
 
-                <FishGrid
-                    token={token}
-                    stats={stats}
-                    apiRequest={apiRequest}
-                />
+                <FishGrid token={token} stats={stats} apiRequest={apiRequest} />
             </div>
         </>
     );
