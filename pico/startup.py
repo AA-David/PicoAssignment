@@ -15,8 +15,6 @@ def wifi_connect():
 		time.sleep(0.5)
 	print("Connected")
 
-wifi_connect()
-
 def register():
 	response = None
 	try:
@@ -40,6 +38,7 @@ def fileExists(f):
 		return False
 
 def getLogin():
+	wifi_connect()
 	if not fileExists("login.txt"):
 		with open("login.txt", "w", encoding="utf-8") as f:
 			loginToken = register()

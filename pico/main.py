@@ -1,20 +1,23 @@
-from mqtt import publishFish
+from machine import Pin
 from time import sleep
 import hashlib, binascii
-import json
 
 from startup import getLogin
+from casting import startCastingMinigame
 
-sleep(5)
+userHash = None
+button =  Pin(6, Pin.IN, Pin.PULL_DOWN)
 
-userHash = binascii.hexlify(hashlib.sha256(getLogin()).digest()).decode()
-randomFish = json.dumps({"fishId": "6af34c5d8206eed0f9702bb0"})
-randomFish2 = json.dumps({"fishId": "6af34c5d8206eed0f9702bb6"})
-randomFish3 = json.dumps({"fishId": "6af34c5d8206eed0f9702bb7"})
+previousButton = button.value()
+while True:
+	currentButton = button.value()
+	pressed = previousButton == 0 and currentButton == 1
+	previousButton = currentButton
 
-print(1)
-publishFish(userHash, randomFish)
-print(2)
-publishFish(userHash, randomFish2)
-print(3)
-publishFish(userHash, randomFish3)
+	if pressed:
+		if userHash == None:
+			userHash = binascii.hexlify(hashlib.sha256(getLogin()).digest()).decode()
+		else:
+			startCastingMinigame(userHash)
+	else:
+		sleep(0.1)

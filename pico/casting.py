@@ -1,31 +1,41 @@
+"""
+By Wallace
+Casting Minigame
+
+1. User pressed button to start
+2. User moves cursor to wanted casting distance, shown by led bar, and controlled by potentiometer
+3. User presses button to lock in casting distance
+4. Random blinking led lights up, representing the fish
+5. User moves cursor to random led
+6. User pressed button, then moves on to casting minigame
+"""
+
 from machine import ADC, Pin
 import random
 import time
 from my74HC595 import Chip74HC595
 
+from reeling import startReelingMinigame
+
 chip = Chip74HC595(3, 4, 5)
 chip.clear()
 
-ledCount = 8  # one 74HC595 drives Q0-Q7
-buttonPin = 6
-potPin = 26
-catchingRows = 9
-targetFlash = 250
-matchFlash = 100
+BUTTON_PIN         = 6
+POTENTIOMETER_PN   = 26
+LED_COUNT          = 8
 
-button = Pin(buttonPin, Pin.IN, Pin.PULL_DOWN)
-pot = ADC(Pin(potPin))
+TARGET_FLASH_SPEED = 250
+MATCH_FLASH_SPEED  = 100
 
-def showLeds(mask):
-    # direction 1: bit n of mask lights output Qn
-    chip.shiftOut(1, mask)
+button = Pin(BUTTON_PIN, Pin.IN, Pin.PULL_DOWN)
+potentiometer = ADC(Pin(POTENTIOMETER_PN))
 
-def turnOffLeds():
-    showLeds(0)
+def showLeds(pattern):
+    chip.shiftOut(1, pattern)
 
 def readPosition():
-    reading = pot.read_u16()
-    position = (reading * ledCount) // 65536
+    reading = potentiometer.read_u16()
+    position = (reading * LED_COUNT) // 65536
     return position
 
 
@@ -34,63 +44,45 @@ def showPosition():
     showLeds(1 << position)
     return position
 
+def startCastingMinigame(userHash):
+    stage = 1
+    castingDistance = None
+    target = None
 
-stage = 0
-# stage 0: press to start; 1: choose distance; 2: match target; 3: finished
-distance = None
-target = None
-landingLed = None
+    previousButton = button.value()
+    chip.clear()
 
-# Demo-only press detection (NOT debouncing).
-previousButton = button.value()
-turnOffLeds()
+    while True:
+        currentButton = button.value()
+        pressed = previousButton == 0 and currentButton == 1
+        previousButton = currentButton
 
-while True:
-    currentButton = button.value()
-    pressed = previousButton == 0 and currentButton == 1
-    previousButton = currentButton
+        if stage == 1: # Move cursor to wanted casting distance
+            position = showPosition()
+            if pressed:
+                castingDistance = position
+                target = random.randint(0, LED_COUNT - 1)
+                stage = 2
+        elif stage == 2: # Move cursor to random led displayed
+            position = readPosition()
+            pattern = 1 << position
 
-    if stage == 0:
-        if pressed:
-            stage = 1
+            if target is not None:
+                if position != target:
+                    if (time.ticks_ms() // TARGET_FLASH_SPEED) % 2 == 0:
+                        pattern |= 1 << target
+                else:
+                    if (time.ticks_ms() // MATCH_FLASH_SPEED) % 2 == 1:
+                        pattern = 0
 
-    elif stage == 1:
-        position = showPosition()
-        if pressed:
-            distance = position
-            target = random.randint(0, ledCount - 1)
-            stage = 2
+                    if pressed:
+                        stage = 3
 
-    elif stage == 2:
-        position = readPosition()
-        mask = 1 << position
+            showLeds(pattern)
+        elif stage == 3: # Success
+            showLeds(0xFF)
+            startReelingMinigame(target, userHash)
+            break
 
-        if target is not None:
-            if position != target:
-                if (time.ticks_ms() // targetFlash) % 2 == 0:
-                    mask |= 1 << target
-            else:
-                if (time.ticks_ms() // matchFlash) % 2 == 1:
-                    mask = 0
-
-                if pressed:
-                    landingLed = distance
-                    stage = 3
-
-        showLeds(mask)
-
-    elif stage == 3:
-        # Demo-only success indicator: all LEDs light up.
-        # Your friend's catching minigame can use landingLed here.
-        showLeds(0xFF)
-
-        # Press again to try another cast.
-        if pressed:
-            turnOffLeds()
-            distance = None
-            target = None
-            landingLed = None
-            stage = 0
-
-    # This short loop pause is not a button debounce delay.
-    time.sleep_ms(5)
+        # Overall speed of minigame
+        time.sleep_ms(5)
