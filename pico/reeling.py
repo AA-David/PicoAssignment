@@ -12,19 +12,14 @@ from machine import Pin
 from random import randint
 import time
 from my74HC595 import Chip74HC595
+import json
+from mqtt import publishFish
 
 chip = Chip74HC595(3, 4, 5)
-chip.clear()
 
 button              =  Pin(6, Pin.IN, Pin.PULL_DOWN)
 paddleColumnPinNums =  [8, 9, 10, 11, 12, 13, 14, 15]
 fishColumnPinNums   =  [28, 22, 21, 20, 19, 18, 17, 16]
-
-paddlePos = 1
-fishPos   = 4 # TODO: value should be taken from casting minigame
-
-progressPos   = 0
-progressTimer = 0
 
 fishColumnPins   =  []
 paddleColumnPins =  []
@@ -89,13 +84,20 @@ def progressBar(progressTimer, progressPos, fishPos, paddlePos):
         progressTimer = 0
     return progressTimer, progressPos
 
-# TODO: Move to main.py
-while True:
-    progressTimer, progressPos = progressBar(progressTimer, progressPos, fishPos, paddlePos)
-    paddlePos = movePaddle(paddlePos, button, paddleColumnPins)
-    fishPos   = moveFish(fishPos, fishColumnPins)
+def startReelingMinigame(fishPos, userHash):
+    chip.clear()
+    paddlePos = 1
+    progressPos   = 0
+    progressTimer = 0
 
-    time.sleep(0.3) # Overall speed of minigame
+    while True:
+        progressTimer, progressPos = progressBar(progressTimer, progressPos, fishPos, paddlePos)
+        paddlePos = movePaddle(paddlePos, button, paddleColumnPins)
+        fishPos   = moveFish(fishPos, fishColumnPins)
 
-    if progressPos == 8:
-        break # TODO: publish caught fish from randomFish.py
+        time.sleep(0.3) # Overall speed of minigame
+
+        if progressPos == 8:
+            randomFish = json.dumps({"fishId": "6af34c5d8206eed0f9702bb0"}) # TODO: calculate random fish
+            publishFish(userHash, randomFish)
+            break
