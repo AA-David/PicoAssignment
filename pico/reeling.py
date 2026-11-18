@@ -98,6 +98,6 @@ def startReelingMinigame(fishPos, userHash):
         time.sleep(0.3) # Overall speed of minigame
 
         if progressPos == 8:
-            randomFish = json.dumps({"fishId": "6af34c5d8206eed0f9702bb0"}) # TODO: calculate random fish
+            randomFish = json.dumps({"fishId": "6af34c5d8206eed0f9702bb0"}) # TODO: Calculate random fish
             publishFish(userHash, randomFish)
             break
