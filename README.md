@@ -30,6 +30,7 @@ The same single button is used for every step of a cast.
     - Shows the name of the fish caught and its rarity
     - Option A: one LCD with the fish name on one line and the rarity on the other
     - Option B: two LCDs, one for the fish name and one for the rarity (undecided: depends on the size of the LCD, and general pins available)
+- The LCD will also show status messages, such as "Login failed" and "Please log in", and other messages like these
 
 ### Game loop
 
@@ -80,14 +81,6 @@ The same single button is used for every step of a cast.
 │       ├── services/         user.service.ts: the database logic, shared by the HTTP and MQTT entry points
 │       ├── mqtt/             mqtt.ts: the broker connection, catch subscriber and state publisher
 │       └── utils/            AppError, an error carrying an HTTP status code
-├── pico/                     MicroPython code for the Pico (see Pico implementation status)
-│   ├── main.py               Entry point: logs in, then publishes caught fish
-│   ├── startup.py            Wi-Fi connection, registration and the login token in login.txt
-│   ├── mqtt.py               MQTT connection to the broker, publishes caught fish
-│   ├── simple.py             MicroPython umqtt.simple MQTT client library
-│   ├── fish.json             The Pico's trimmed fish list (_id, rarity, name)
-│   ├── secrets.example.py    Template for secrets.py (SSID, WIFI_PASSWORD, API_URL); secrets.py is git-ignored
-│   └── .micropico            Marks the folder as a MicroPico project for the VS Code extension
 ├── frontend/                 Vite + React + Tailwind dashboard
 │   ├── .env.example          Template for .env (VITE_API_URL)
 │   ├── public/               All sprites used
@@ -99,6 +92,18 @@ The same single button is used for every step of a cast.
 │       ├── types/            Global TypeScript types (IStats, IFish, IInventoryFish)
 │       └── utils/
 │           └── readPico.ts   Web Serial reader that receives the token from the Pico
+├── pico/                     MicroPython code for the Pico (see Pico implementation status)
+│   ├── main.py               Entry point: logs in, subscribes to state, then runs the main loop that starts casts
+│   ├── startup.py            Wi-Fi connection, registration, the login token in login.txt, and the GET /api/state fetch
+│   ├── mqtt.py               MQTT connection to the broker: publishes catches, subscribes to state updates, pings and reconnects
+│   ├── casting.py            Casting minigame (LED bar and potentiometer); starts the reeling minigame when it succeeds
+│   ├── reeling.py            Reeling minigame (button and LED columns); publishes the catch when the progress bar fills
+│   ├── my74HC595.py          Driver for the 74HC595 shift register that drives the LED bar
+│   ├── randomFish.py         Placeholder for the fish selection (empty for now)
+│   ├── simple.py             MicroPython umqtt.simple MQTT client library
+│   ├── fish.json             The Pico's trimmed fish list (_id, rarity, name, weight)
+│   ├── secrets.example.py    Template for secrets.py (SSID, WIFI_PASSWORD, API_URL); secrets.py is git-ignored
+│   └── .micropico            Marks the folder as a MicroPico project for the VS Code extension
 └── randomFishSelection.md    Full design of the catch odds and balancing tables
 ```
 
@@ -183,16 +188,16 @@ Inventory updates are two atomic steps: increment the entry's `quantity` if the 
 
 ## Signing in and registering
 
-The player's token is saved in a file called `login.txt` on the Pico's flash, so the Pico itself is the account. (The plan was to keep the token on an RFID card instead; see [RFID](#rfid) for why it isn't.) When the Pico boots, `getLogin()` in [pico/startup.py](pico/startup.py) does the following:
+The player's token is saved in a file called `login.txt` on the Pico's flash, so the Pico itself is the account. (The plan was to keep the token on an RFID card instead; see [RFID](#rfid) for why it isn't.) At login (the first button press after the Pico boots), `getLogin()` in [pico/startup.py](pico/startup.py) does steps 1 to 4, and `main.py` does step 5:
 
 1. Check whether `login.txt` exists.
 2. **No file (new player):** the Pico makes an HTTP request to `POST /api/register` and saves the returned un-hashed token in `login.txt`.
 3. **File exists (returning player):** the Pico reads the token from it.
-4. **Load the starting state** (planned, see [Pico implementation status](#pico-implementation-status)): the Pico subscribes to its MQTT `state` topic first, then makes an HTTP request to `GET /api/state` with the token as a Bearer token, and keeps the response in memory (see [MQTT](#mqtt)). If the backend answers `401`, the Pico treats the token as invalid and doesn't start the game.
-5. The Pico sends the token to the website. To receive it, the player first clicks the website's **Login** button and picks the Pico's serial port in the browser's prompt (see [Pico serial protocol](#pico-serial-protocol)).
+4. The Pico sends the token to the website. To receive it, the player first clicks the website's **Login** button and picks the Pico's serial port in the browser's prompt (see [Pico serial protocol](#pico-serial-protocol)).
+5. **Load the starting state:** [pico/main.py](pico/main.py) hashes the token, subscribes to the Pico's MQTT `state` topic first, then makes an HTTP request to `GET /api/state` with the token as a Bearer token, and keeps the response in memory (see [MQTT](#mqtt)). If the backend answers `401`, the Pico treats the token as invalid, prints a message and stops without starting the game.
 6. The website sends the token as a Bearer token with each API request, and the backend middleware authenticates it (see [Backend API](#backend-api)).
 
-These are the only HTTP calls the Pico makes. Both happen once at login, where the extra latency doesn't matter; everything during play goes over MQTT.
+These are the only HTTP calls the Pico makes. Registration happens once, on first boot. The state fetch happens at login and again after every MQTT reconnect (see [Keeping the Pico's state current](#keeping-the-picos-state-current)). Neither happens per action, so the extra latency doesn't matter; everything during play goes over MQTT.
 
 Because the token only exists in `login.txt`, deleting that file (or reflashing the Pico without it) loses the account: the next boot registers a new player.
 
@@ -272,30 +277,49 @@ The backend side is [backend/src/mqtt/mqtt.ts](backend/src/mqtt/mqtt.ts). `start
 - **State.** The service functions that change the rod, luck, baits, equipped bait, or add to the almanac, call `publishState(login, state)` after the update succeeds. The HTTP controllers pass `req.user.login`, which the auth middleware sets to the token hash, and the catch handler passes the id from the topic.
 - **Connection.** The backend uses a clean session. The client reconnects by itself and subscribes again each time it connects, and `reconnect`, `offline` and `error` events are logged. Catches published while the backend is offline are not queued by the broker, so they are lost.
 
+### Pico code flow
+
+The Pico code is a set of nested loops. [main.py](pico/main.py) holds the main loop. Each minigame has its own loop that runs until the minigame ends and then returns to the loop that called it. There are no threads or interrupts, so the Pico only runs one loop at a time.
+
+```
+main.py: main loop
+ ├─ every pass, once logged in: checkState(), pingBroker()                  mqtt.py
+ ├─ first button press (login): getLogin(), subscribeState(), loadState()   startup.py, mqtt.py
+ └─ button presses after: startCastingMinigame(userHash)                    casting.py
+      └─ casting loop:
+           └─ startReelingMinigame(target, userHash)                        reeling.py
+                └─ reeling loop: runs until the progress bar is full
+                     └─ publishFish(userHash, fish)                          mqtt.py
+```
+
 ### Pico implementation status
 
-The Pico code is a work in progress. [pico/main.py](pico/main.py) is the entry point and uses the other files:
+[pico/main.py](pico/main.py) is the entry point and uses the other files:
 
 - **Wi-Fi.** [startup.py](pico/startup.py) connects to Wi-Fi with the `SSID` and `WIFI_PASSWORD` from `secrets.py` (copy [secrets.example.py](pico/secrets.example.py) to make it).
 - **Login.** `getLogin()` in `startup.py` registers with `POST /api/register` on first boot and saves the token in `login.txt`, or reads the saved token (see [Signing in and registering](#signing-in-and-registering)). The backend URL is `API_URL` from `secrets.py`. It then prints the token over serial for the website (see [Pico serial protocol](#pico-serial-protocol)).
 - **Player id.** `main.py` hashes the token with SHA-256 to get the player id used in the topic.
-- **Catches.** [mqtt.py](pico/mqtt.py) connects to the broker over TLS, and `publishFish(userHash, fish)` publishes one catch to `picoAssignmentDWL/<id>/catch` with QoS 1.
+- **State.** `subscribeState(userHash)` in [mqtt.py](pico/mqtt.py) subscribes to `picoAssignmentDWL/<id>/state` over TLS with QoS 1. `fetchState(token)` in `startup.py` makes the `GET /api/state` request, and `loadState(token)` stores the result in the module-level `state` dict. State messages from the broker update the same dict. Only `rod`, `luck`, `baits`, `equippedBait` and `almanac` are kept.
+- **Connection upkeep.** `checkState()` and `pingBroker()` handle incoming messages and pings, and `reconnect()` reconnects, resubscribes and refetches the state when the connection drops (see [Keeping the Pico's state current](#keeping-the-picos-state-current)).
+- **Catches.** `publishFish(userHash, fish)` publishes one catch to `picoAssignmentDWL/<id>/catch` with QoS 1. If the connection is dead, it reconnects and retries once; if that fails, the catch is dropped.
 
-Until the fish selection is added, the caught fish is a placeholder: `main.py` passes a hard-coded `fishId` from [fish.json](pico/fish.json). `getFish()` in `mqtt.py` will hold the fish selection from [randomFishSelection.md](randomFishSelection.md).
+Until the fish selection is added, the caught fish is a placeholder: [reeling.py](pico/reeling.py) publishes a hard-coded `fishId` (the first fish in [fish.json](pico/fish.json)). The fish selection from [randomFishSelection.md](randomFishSelection.md) is meant to replace it; [randomFish.py](pico/randomFish.py) is an empty stub for now.
 
-Not implemented yet:
+> **TODO:** Add the fish selection, and add each caught fish to the Pico's own almanac.
 
-- Loading the starting state with `GET /api/state` at login, and the `401` check.
-- Subscribing to the `state` topic, and the rules in the next section.
-- The gameplay itself (LED bar, button, potentiometer and LCD).
+> **TODO:** Retry the first state fetch. If `GET /api/state` fails at login for a reason other than a `401`, such as a network error or a `500`, the Pico carries on with an empty `state` until the next state message or reconnect.
+
+> **TODO:** Reconnect Wi-Fi after it drops. Only MQTT is reconnected for now.
+
+> **TODO:** Add the LCD that shows the caught fish and its rarity. It will also show status messages such as "Login failed" and "Please log in", and other messages like these.
 
 ### Keeping the Pico's state current
 
 The starting state comes from `GET /api/state`, not from the broker, so nothing depends on the broker retaining messages. The Pico follows these rules:
 
 - **Subscribe first, then fetch.** If the player buys something between the two steps, the change arrives over MQTT instead of being missed. The HTTP response is the baseline and any later MQTT state message overwrites it.
-- **Refetch after a reconnect.** If the Pico's MQTT connection drops and comes back, it may have missed updates, so it calls `GET /api/state` again. The public broker gives no uptime guarantee and may drop messages, and clients are expected to reconnect on their own.
-- **Keep the connection alive.** The Pico mostly listens between casts, so it calls `ping()` regularly and checks for messages in the game loop without blocking.
+- **Refetch after a reconnect.** If the Pico's MQTT connection drops and comes back, it may have missed updates, so it calls `GET /api/state` again. The public broker gives no uptime guarantee and may drop messages, and clients are expected to reconnect on their own. If a reconnect attempt fails, `checkState()` tries again at most every 10 seconds, so a network outage doesn't keep blocking the game loop.
+- **Keep the connection alive.** The Pico mostly listens between casts, so [main.py](pico/main.py) calls `pingBroker()` (a ping every 30 seconds, against a keepalive of 120) and `checkState()` (a non-blocking check for messages) on every pass of its loop. The casting and reeling minigames run their own loops and don't call them, so updates and pings wait until the minigame ends.
 
 ### Website updates
 

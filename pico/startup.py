@@ -15,6 +15,7 @@ def wifi_connect():
 		time.sleep(0.5)
 	print("Connected")
 
+# POST /api/register. Returns unhashed token given from API, to be stored in login.txt
 def register():
 	response = None
 	try:
@@ -23,6 +24,29 @@ def register():
 			print('Register failed: HTTP', response.status_code)
 			return None
 		return response.json()["token"]
+	except Exception as e:
+		print('Error during request:', e)
+		return None
+	finally:
+		if response:
+			response.close()
+
+class InvalidToken(Exception):
+	pass
+
+# GET /api/state. Returns the state dict, or None if the request failed.
+def fetchState(token):
+	response = None
+	try:
+		response = requests.get(API_URL + "/api/state", headers={"Authorization": "Bearer " + token})
+		if response.status_code == 200:
+			return response.json()
+		print('Fetch state failed: HTTP', response.status_code)
+		if response.status_code == 401:
+			raise InvalidToken()
+		return None
+	except InvalidToken:
+		raise
 	except Exception as e:
 		print('Error during request:', e)
 		return None
@@ -39,14 +63,19 @@ def fileExists(f):
 
 def getLogin():
 	wifi_connect()
-	if not fileExists("login.txt"):
-		with open("login.txt", "w", encoding="utf-8") as f:
-			loginToken = register()
-			f.write(loginToken)
-			value = loginToken
-	else:
+	value = None
+	if fileExists("login.txt"):
 		with open("login.txt", "r", encoding="utf-8") as f:
 			value = f.read()
+
+	# No file, or an empty one: register a new player. Write to the file once API responded with token
+	if not value:
+		value = register()
+		if value is None:
+			print('Could not register a new player.')
+			return None
+		with open("login.txt", "w", encoding="utf-8") as f:
+			f.write(value)
 
 	print(json.dumps({
 		"value": value,
