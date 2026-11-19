@@ -13,8 +13,8 @@ from random import randint
 import time
 from my74HC595 import Chip74HC595
 import json
-from mqtt import publishFish
-
+from mqtt import publishFish , state 
+from randomFish import randomFishMain
 chip = Chip74HC595(3, 4, 5)
 
 button              =  Pin(6, Pin.IN, Pin.PULL_DOWN)
@@ -98,6 +98,7 @@ def startReelingMinigame(fishPos, userHash):
         time.sleep(0.3) # Overall speed of minigame
 
         if progressPos == 8:
+            fish=randomFishMain(state["rod"],state["luck"],state["equippedBait"], state["almanac"])
             randomFish = json.dumps({"fishId": "6af34c5d8206eed0f9702bb0"}) # TODO: Calculate random fish
             publishFish(userHash, randomFish)
             break
