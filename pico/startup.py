@@ -1,5 +1,8 @@
 import os, json, network, requests, time
 import secrets
+from WriteToLcd import WriteToLcd
+
+lcd = WriteToLcd()
 
 SSID = secrets.SSID
 WIFI_PASSWORD = secrets.WIFI_PASSWORD
@@ -14,6 +17,7 @@ def wifi_connect():
 		print('Waiting for collection...')
 		time.sleep(0.5)
 	print("Connected")
+	lcd.write(0, "wifi connected")
 
 # POST /api/register. Returns unhashed token given from API, to be stored in login.txt
 def register():
@@ -70,8 +74,10 @@ def getLogin():
 
 	# No file, or an empty one: register a new player. Write to the file once API responded with token
 	if not value:
+		lcd.write(0, "registering")
 		value = register()
 		if value is None:
+			lcd.write(0, "register failed")
 			print('Could not register a new player.')
 			return None
 		with open("login.txt", "w", encoding="utf-8") as f:

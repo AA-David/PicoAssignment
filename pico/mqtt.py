@@ -4,6 +4,9 @@ import time
 import ubinascii
 from simple import MQTTClient
 from startup import fetchState, InvalidToken
+from WriteToLcd import WriteToLcd
+
+lcd = WriteToLcd()
 
 BROKER = b'broker.hivemq.com'
 KEEPALIVE_S = 120
@@ -79,6 +82,7 @@ def subscribeState(userHash):
 def reconnect():
 	global connected, lastReconnectAttempt
 	lastReconnectAttempt = time.ticks_ms()
+	lcd.write(0, "reconnecting")
 
 	# TODO: If the Pico's Wi-Fi dropped, reconnect Wi-Fi before reconnecting MQTT
 
@@ -94,8 +98,10 @@ def reconnect():
 			ensureConnected()
 	except OSError as e:
 		connected = False
+		lcd.write(0, "mqtt failed")
 		print('MQTT reconnect failed: %s' % e)
 		return False
+	lcd.write(0, "mqtt connected")
 	print('MQTT reconnected')
 
 	# updates may have been missed while offline, so refetch the state with HTTP request

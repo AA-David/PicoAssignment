@@ -18,7 +18,10 @@ while True:
 	pressed = previousButton == 0 and currentButton == 1
 	previousButton = currentButton
 
-	lcd.write(0, "please log in")
+	if userHash == None:
+		lcd.write(0, "please log in")
+	else:
+		lcd.write(0, "press to cast")
 
 	if userHash != None:
 		checkState()
@@ -26,6 +29,7 @@ while True:
 
 	if pressed:
 		if userHash == None:
+			lcd.write(0, "connecting wifi")
 			token = getLogin()
 			if token is None:
 				continue  # registration failed, tries again on the next button press
@@ -33,8 +37,13 @@ while True:
 			subscribeState(userHash)  # subscribe first, then fetch, so no update is missed
 			try:
 				# TODO: loadState doesn't retry if the fetch fails, so state stays empty
-				loadState(token)
+				if loadState(token):
+					lcd.write(0, "logged in")
+				else:
+					lcd.write(0, "state load fail")
+				sleep(1)
 			except InvalidToken:
+				lcd.write(0, "invalid token")
 				print('Token rejected by the backend. Delete login.txt to register a new player.')
 				raise SystemExit # End the program
 		else:

@@ -89,6 +89,7 @@ def progressBar(progressTimer, progressPos, fishPos, paddlePos):
     return progressTimer, progressPos
 
 def startReelingMinigame(fishPos, userHash):
+    lcd.write(0, "reeling fish")
     chip.clear()
     for i in range(0, 8):
         fishColumnPins[i].off()
@@ -114,5 +115,6 @@ def startReelingMinigame(fishPos, userHash):
                 
             lcd.write(0, "fish caught")
             lcd.write(1, "rarity: epic")
+            time.sleep(2)
             publishFish(userHash, randomFish)
             break
