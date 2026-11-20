@@ -99,6 +99,6 @@ def startReelingMinigame(fishPos, userHash):
 
         if progressPos == 8:
             fish=randomFishMain(state["rod"],state["luck"],state["equippedBait"], state["almanac"])
-            randomFish = json.dumps({"fishId": "6af34c5d8206eed0f9702bb0"}) # TODO: Calculate random fish
+            randomFish = json.dumps({"fishId": fish["_id"]}) 
             publishFish(userHash, randomFish)
             break

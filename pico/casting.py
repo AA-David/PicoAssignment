@@ -82,8 +82,7 @@ def startCastingMinigame(userHash):
         elif stage == 3: # Success
             showLeds(0xFF)
             # TODO: currently, casting distance doesn't do anything, so could use it in randomFish.py if time allows
-            startReelingMinigame(target, userHash)
-            break
+            return position
 
         # Overall speed of minigame
         time.sleep_ms(5)

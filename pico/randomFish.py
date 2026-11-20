@@ -5,9 +5,10 @@
 #2 use the luck and the bait from the mqtt to get the rartity weights
 #3 randomly pick a rarity using the weghts calculated 
 #4 get all the fish and weights for the chosen rarity 
-#5 
+#5 use the weghts to randomly pick a fish and return that to the main file 
 import random
 import json
+from mqtt import state 
 baitMultiplier=[6, 5, 5, 6, 10]
 """
 Stuff for the rarity picking 
@@ -55,8 +56,8 @@ def fishGetter(rarityChosen,fishWeight,almanac):
     for fish in fishRarity:
         fishWeights.append((fish["weight"]))
         if fish["_id"] not in almanac:
-            fishWeights[fish-1]*=3
-    return fishRarity[weightPicker[fishWeights]]
+            fishWeights[-1]*=3
+    return fishRarity[weightPicker(fishWeights)]
 
 def fishLoader():
     with open("fish.json") as file:
@@ -70,10 +71,12 @@ def weightPicker(weight):
         running+= weight[counter]
         if roll < running:
             return counter
+    return len(weight-1)
 
 def randomFishMain(rod,luck,bait,almanac):
-    fishWeight=fishGetter()
+    fishWeight=fishLoader()
     rarityChosen=rarityPicker(rod,bait,luck)
     return fishGetter(rarityChosen,fishWeight,almanac)
+
 
 
