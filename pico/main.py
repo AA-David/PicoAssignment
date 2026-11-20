@@ -4,6 +4,7 @@ import hashlib, binascii
 
 from startup import getLogin, InvalidToken
 from casting import startCastingMinigame
+from reeling import startReelingMinigame
 from mqtt import subscribeState, loadState, checkState, pingBroker
 from WriteToLcd import WriteToLcd
 
@@ -37,6 +38,9 @@ while True:
 				print('Token rejected by the backend. Delete login.txt to register a new player.')
 				raise SystemExit # End the program
 		else:
-			startCastingMinigame(userHash)
+			fishPos=startCastingMinigame(userHash)
+			startReelingMinigame(fishPos, userHash)
+
+
 	else:
 		sleep(0.1)
