@@ -1,82 +1,85 @@
-#
-#Leon 
-#Steps
-#1. use the rod form the mqtt to get the base rarity weights
-#2 use the luck and the bait from the mqtt to get the rartity weights
-#3 randomly pick a rarity using the weghts calculated 
-#4 get all the fish and weights for the chosen rarity 
-#5 use the weghts to randomly pick a fish and return that to the main file 
+"""
+By Leon 
+Random fish generation
+
+1. Use rod from state to get baseline rarity weights
+2. Use luck and bait from state to update rarity weights accordingly
+3. Choose rarity using weights calculated
+4. Get all fish and their updated weights from chosen rarity 
+5. Use calculated fish weights to select a fish
+"""
+
 import random
 import json
-from mqtt import state 
-baitMultiplier=[6, 5, 5, 6, 10]
-"""
-Stuff for the rarity picking 
-"""
+from mqtt import state
+
+BAIT_MULTIPLIER = [6, 5, 5, 6, 10]
+
+# Rarity
 
 def rodWeights(rod):
     if rod == 0:
-        rarityWeight=[100,0,0,0,0]
-    elif rod ==1:
-        rarityWeight=[100,35,0,0,0]
+        rarityWeight = [100,0,0,0,0]
+    elif rod == 1:
+        rarityWeight = [100,35,0,0,0]
     elif rod == 2:
-        rarityWeight=[100,35,10,0,0]
+        rarityWeight = [100,35,10,0,0]
     elif rod == 3:
-        rarityWeight=[100,35,10,2.5,0]
+        rarityWeight = [100,35,10,2.5,0]
     else:
-        rarityWeight=[100,35,10,2.5,0.5]    
+        rarityWeight = [100,35,10,2.5,0.5]
     return rarityWeight    
 
-def rarityCalculator(rarityWeight,bait,rod,luck):
-    for counter in range(0,rod+1):
-        rarityWeight[counter] *= (1 + 0.25 * luck)  ** counter
-        if counter == bait:
-            rarityWeight[counter] *= baitMultiplier[counter]
-        if counter == rod and rod > 0:
+def rarityCalculator(rarityWeight):
+    for counter in range(0, state["rod"] + 1):
+        rarityWeight[counter] *= (1 + 0.25 * state["luck"]) ** counter
+
+        if counter == state["equippedBait"]:
+            rarityWeight[counter] *= BAIT_MULTIPLIER[counter]
+        if counter == state["rod"] and state["rod"] > 0:
             rarityWeight[counter] *= 1.5
         if counter > 0:
             rarityWeight[counter] *= random.uniform(0.8, 1.2)
+
     return rarityWeight
 
-def rarityPicker(rod,bait,luck):
-    rarityWeight=rodWeights(rod)
-    rarityWeight=rarityCalculator(rarityWeight,bait,rod,luck)
+def rarityPicker():
+    rarityWeight = rodWeights(state["rod"])
+    rarityWeight = rarityCalculator(rarityWeight)
+
     return weightPicker(rarityWeight)
 
-
-""""
-Stuff for the Fish picking 
-"""
-def fishGetter(rarityChosen,fishWeight,almanac):
-    fishRarity=[]
-    for fish in fishWeight:
-        if fish["rarity"] == rarityChosen:
-            fishRarity.append(fish)
-    fishWeights=[]
-    for fish in fishRarity:
-        fishWeights.append((fish["weight"]))
-        if fish["_id"] not in almanac:
-            fishWeights[-1]*=3
-    return fishRarity[weightPicker(fishWeights)]
+# Fish
 
 def fishLoader():
     with open("fish.json") as file:
         return json.load(file)
 
 def weightPicker(weight):
-    total=sum(weight)
-    roll=random.random() *total
-    running=0 
+    total = sum(weight)
+    roll = random.random() * total
+    running = 0 
+
     for counter in range (len(weight)):
-        running+= weight[counter]
+        running += weight[counter]
         if roll < running:
             return counter
-    return len(weight)-1
 
-def randomFishMain(rod,luck,bait,almanac):
-    fishWeight=fishLoader()
-    rarityChosen=rarityPicker(rod,bait,luck)
-    return fishGetter(rarityChosen,fishWeight,almanac)
+    return len(weight) - 1
 
+def generateFish():
+    fishFromFile = fishLoader()
+    rarityChosen = rarityPicker()
 
+    eligibleFish = []
+    for fish in fishFromFile:
+        if fish["rarity"] == rarityChosen:
+            eligibleFish.append(fish)
 
+    fishWeights = []
+    for fish in eligibleFish:
+        fishWeights.append((fish["weight"]))
+        if fish["id"] not in state["almanac"]:
+            fishWeights[-1] *= 3
+
+    return eligibleFish[weightPicker(fishWeights)]

@@ -14,8 +14,8 @@ import time
 from my74HC595 import Chip74HC595
 import json
 
-from mqtt import publishFish , state 
-from randomFish import randomFishMain
+from mqtt import publishFish
+from randomFish import generateFish
 from WriteToLcd import WriteToLcd
 
 lcd = WriteToLcd()
@@ -107,14 +107,26 @@ def startReelingMinigame(fishPos, userHash):
         time.sleep(0.3) # Overall speed of minigame
 
         if progressPos == 8:
-            fish=randomFishMain(state["rod"],state["luck"],state["equippedBait"], state["almanac"])
-            randomFish = json.dumps({"fishId": fish["_id"]}) 
+            fish = generateFish()
+            randomFish = json.dumps({"fishId": fish["id"]}) 
             for i in range(0, 8):
                 fishColumnPins[i].on()
                 paddleColumnPins[i].on()
                 
-            lcd.write(0, "fish caught")
-            lcd.write(1, "rarity: epic")
-            time.sleep(2)
+            lcd.write(0, fish["name"])
+
+            if fish["rarity"] == 0:
+                formattedRarity = "common"
+            elif fish["rarity"] == 1:
+                formattedRarity = "uncommon"
+            elif fish["rarity"] == 2:
+                formattedRarity = "rare"
+            elif fish["rarity"] == 3:
+                formattedRarity = "epic"
+            else:
+                formattedRarity = "legendary"
+
+            lcd.write(1, "rarity %s" % formattedRarity)
+            time.sleep(4)
             publishFish(userHash, randomFish)
             break
