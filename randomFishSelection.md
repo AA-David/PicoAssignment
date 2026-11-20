@@ -57,6 +57,7 @@ Then pick one fish at random, with probability `fish_weight / sum of fish_weight
 
 - `price ^ -0.25` is a gentle price effect. Within a rarity, the cheapest fish is only about 1.2–1.7× as likely as the priciest, so no fish is a nightmare to find. For example, in common the cheapest is 4.8% and the priciest 2.8%; in legendary it is 28.6% and 21.5%.
 - `new_fish_boost` makes undiscovered fish 3× as likely, so the player does not get stuck catching duplicates while hunting the last few fish. Once a fish is in the collection it goes back to normal weight.
+- **The `price ^ -0.25` part is precomputed.** On the Pico, each fish's `weight` in `pico/fish.json` is already `price ^ -0.25`, worked out when the file is made. The Pico never sees fish prices and doesn't calculate this itself. The only thing it calculates at catch time is the 3× new-fish boost. If a fish's price changes, `fish.json` has to be regenerated.
 
 ## Reference tables
 
@@ -174,5 +175,6 @@ This is only the final collecting phase after all upgrades are bought, not the t
 Notes:
 
 - The game code has to apply `noise` and the formula for `fish_pick_within_rarity`, not just store the numbers.
+- **On the Pico these values are hard-coded.** `base_weight`, `rod_top_tier_bonus`, `bait_multiplier`, `luck_per_level`, `noise` and `new_fish_boost` are written directly into `pico/randomFish.py` (only `bait_multiplier` is a named constant, the rest are literal numbers). They are not read from the backend or from a settings file, so changing one means editing and reflashing `randomFish.py`, and updating this table by hand to match.
 - To make the whole game faster or slower, multiply all the prices by one factor and leave the odds alone.
 - The tables above leave out the 0.8–1.2 randomness, so real casts will wobble around them.
