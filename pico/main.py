@@ -7,7 +7,6 @@ from casting import startCastingMinigame
 from reeling import startReelingMinigame
 from mqtt import subscribeState, loadState, checkState, pingBroker
 
-from reeling import startReelingMinigame
 userHash = None
 button =  Pin(6, Pin.IN, Pin.PULL_DOWN)
 

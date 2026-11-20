@@ -71,7 +71,7 @@ def weightPicker(weight):
         running+= weight[counter]
         if roll < running:
             return counter
-    return len(weight-1)
+    return len(weight)-1
 
 def randomFishMain(rod,luck,bait,almanac):
     fishWeight=fishLoader()
