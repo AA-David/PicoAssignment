@@ -6,7 +6,9 @@ from startup import getLogin, InvalidToken
 from casting import startCastingMinigame
 from reeling import startReelingMinigame
 from mqtt import subscribeState, loadState, checkState, pingBroker
+from WriteToLcd import WriteToLcd
 
+lcd = WriteToLcd()
 userHash = None
 button =  Pin(6, Pin.IN, Pin.PULL_DOWN)
 
@@ -15,6 +17,8 @@ while True:
 	currentButton = button.value()
 	pressed = previousButton == 0 and currentButton == 1
 	previousButton = currentButton
+
+	lcd.write(0, "please log in")
 
 	if userHash != None:
 		checkState()

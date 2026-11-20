@@ -16,7 +16,9 @@ import time
 from my74HC595 import Chip74HC595
 
 from reeling import startReelingMinigame
+from WriteToLcd import WriteToLcd
 
+lcd = WriteToLcd()
 chip = Chip74HC595(3, 4, 5)
 chip.clear()
 
@@ -59,6 +61,7 @@ def startCastingMinigame(userHash):
 
         if stage == 1: # Move cursor to wanted casting distance
             position = showPosition()
+            lcd.write(1, "casting distance")
             if pressed:
                 castingDistance = position
                 target = random.randint(0, LED_COUNT - 1)
@@ -66,6 +69,7 @@ def startCastingMinigame(userHash):
         elif stage == 2: # Move cursor to random led displayed
             position = readPosition()
             pattern = 1 << position
+            lcd.write(1, "catching fish")
 
             if target is not None:
                 if position != target:

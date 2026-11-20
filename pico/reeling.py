@@ -13,8 +13,12 @@ from random import randint
 import time
 from my74HC595 import Chip74HC595
 import json
+
 from mqtt import publishFish , state 
 from randomFish import randomFishMain
+from WriteToLcd import WriteToLcd
+
+lcd = WriteToLcd()
 chip = Chip74HC595(3, 4, 5)
 
 button              =  Pin(6, Pin.IN, Pin.PULL_DOWN)
@@ -86,7 +90,11 @@ def progressBar(progressTimer, progressPos, fishPos, paddlePos):
 
 def startReelingMinigame(fishPos, userHash):
     chip.clear()
-    paddlePos = 1
+    for i in range(0, 8):
+        fishColumnPins[i].off()
+        paddleColumnPins[i].off()
+
+    paddlePos     = 1
     progressPos   = 0
     progressTimer = 0
 
@@ -100,5 +108,11 @@ def startReelingMinigame(fishPos, userHash):
         if progressPos == 8:
             fish=randomFishMain(state["rod"],state["luck"],state["equippedBait"], state["almanac"])
             randomFish = json.dumps({"fishId": fish["_id"]}) 
+            for i in range(0, 8):
+                fishColumnPins[i].on()
+                paddleColumnPins[i].on()
+                
+            lcd.write(0, "fish caught")
+            lcd.write(1, "rarity: epic")
             publishFish(userHash, randomFish)
             break
