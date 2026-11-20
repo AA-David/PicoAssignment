@@ -137,7 +137,7 @@ Every fish is a document in the `Fish` collection in MongoDB, which is the singl
 
 Because MongoDB generates the ids, the Pico can't know them in advance. The Pico keeps a trimmed copy of the fish list on its flash, with only what it needs: `_id`, `rarity` and `name` (for the LCD), `weight` (for picking a fish within a rarity). That copy is [pico/fish.json](pico/fish.json), exported from the database. Fish are identified by `_id` everywhere.
 
-The Pico's copy is only valid for the database it was exported from. If the `Fish` collection is wiped and reseeded, every fish gets a new id, so the Pico's list must be re-exported and reflashed; likwise when a new fish is added.
+The Pico's copy is only valid for the database it was exported from. If the `Fish` collection is wiped and reseeded, every fish gets a new id, so the Pico's list must be re-exported and reflashed; likewise when a new fish is added.
 
 ## Backend API
 
@@ -158,7 +158,7 @@ There is also `GET /health`, outside `/api` and without authentication, which re
 | `/state`        | GET               | The Pico's starting state in one JSON object: `{ money, rod, luck, baits, equippedBait, almanac }`                                                           |
 | `/fish`         | GET               | List every fish in the game as `{ fish: [{ _id, name, img, rarity, price }] }`                                                                               |
 
-Fish are only added to the almanac and inventory by MQTT catches.`DELETE /inventory` and the MQTT catch handler check that it is a valid ObjectId hex string (otherwise `400`) and that the fish exists in the `Fish` collection (otherwise `404`). `GET /almanac` and `GET /inventory` return ids only; the fish data itself comes from `GET /fish`.
+Fish are only added to the almanac and inventory by MQTT catches. `DELETE /inventory` and the MQTT catch handler check that the id is a valid ObjectId hex string (otherwise `400`) and that the fish exists in the `Fish` collection (otherwise `404`). For `DELETE` these are HTTP status codes; for an MQTT catch the error is only logged by the backend, since there is no one to reply to. `GET /almanac` and `GET /inventory` return ids only; the fish data itself comes from `GET /fish`.
 
 ### Server middleware
 
@@ -179,14 +179,14 @@ When the server starts, it raises the HTTP keep-alive timeout to 65 seconds (Ren
 
 The almanac (every fish the player has ever caught) and the inventory (fish caught but not yet sold) are separate lists. Both reference fish by id. The inventory also stores a `quantity` per fish: adding a fish already held increments it, and selling decrements it and removes the entry at 0. The website fetches the full list from `/fish` once after login, keeps it in a lookup by `_id`, and uses it to draw both lists: the almanac shows every fish and unlocks the ones whose id is in `/almanac`, and the inventory looks up each entry's `fish` id. The backend never populates fish data into the user's lists, and the website makes no per-fish requests. While logged in, the website re-fetches the visible tab (almanac or inventory) when switching or else every 15 seconds, to show new catches.
 
-Inventory updates are two atomic steps: increment the entry's `quantity` if the fish is already held, otherwise push a new `{ fish, quantity: 1 }`. Selling decrements the quantity in one atomic update that also adds the price, then removes entries that have reached 0. The schema's `min: 1` on `quantity` isn't checked by these update queries (Mongoose only runs validators on `save` and `create`, or when `runValidators` is set), so the real guard against going below 0 is the `quantity >= 1` condition in the sell filter.
+Inventory updates are two atomic steps: increment the entry's `quantity` if the fish is already held, otherwise push a new `{ fish, quantity: 1 }`. Selling decrements the quantity in one atomic update that also adds the price, then removes entries that have reached 0. The schema's `min: 1` on `quantity` isn't checked by the `$inc` updates (Mongoose only runs validators on `save` and `create`, and its update validators don't cover `$inc`, even with `runValidators` set), so the real guard against going below 0 is the `quantity >= 1` condition in the sell filter.
 
 ## Signing in and registering
 
 The player's token is saved in a file called `login.txt` on the Pico's flash, so the Pico itself is the account. (The plan was to keep the token on an RFID card instead; see [RFID](#rfid) for why it isn't.) At login (the first button press after the Pico boots), `getLogin()` in [pico/startup.py](pico/startup.py) does steps 1 to 4, and `main.py` does step 5:
 
-1. Check whether `login.txt` exists.
-2. **No file (new player):** the Pico makes an HTTP request to `POST /api/register` and saves the returned un-hashed token in `login.txt`.
+1. Connect to Wi-Fi, then check whether `login.txt` exists.
+2. **No file, or an empty one (new player):** the Pico makes an HTTP request to `POST /api/register` and saves the returned un-hashed token in `login.txt`. The file is only written once the backend has returned a token. If the request fails, the LCD shows "register failed" and the player presses the button again to retry.
 3. **File exists (returning player):** the Pico reads the token from it.
 4. The Pico sends the token to the website. To receive it, the player first clicks the website's **Login** button and picks the Pico's serial port in the browser's prompt (see [Pico serial protocol](#pico-serial-protocol)).
 5. **Load the starting state:** [pico/main.py](pico/main.py) hashes the token, subscribes to the Pico's MQTT `state` topic first, then makes an HTTP request to `GET /api/state` with the token as a Bearer token, and keeps the response in memory (see [MQTT](#mqtt)). If the backend answers `401`, the Pico treats the token as invalid, prints a message and stops without starting the game.
@@ -227,7 +227,7 @@ The Pico and the backend both connect to the public HiveMQ broker (`broker.hivem
 - **Live state updates reach the Pico.** The Pico gets its starting state (i.e. upgrade levels, almanac, and equipped bait) over HTTP at login (see [Signing in and registering](#signing-in-and-registering)). After that, when the player buys an upgrade or equips a bait on the website, the backend publishes the player's new state, so the Pico's copy stays current.
 - **Caught fish are sent to the inventory.** The Pico works out the random catch itself and publishes the fish's id. The backend receives it and adds the fish to the player's inventory, and almanac if not already present.
 
-The Pico runs the fish selection from [randomFishSelection.md](randomFishSelection.md), using the previously mentioned state holds in memory. It adds each newly caught fish to its own almanac straight away, so the new-fish boost works without waiting for the backend.
+The Pico runs the fish selection from [randomFishSelection.md](randomFishSelection.md), using the state it holds in memory. It adds each newly caught fish to its own almanac straight away, so the new-fish boost works without waiting for the backend.
 
 ### Topics
 
@@ -378,4 +378,5 @@ Known gaps and planned improvements.
 - 16 LEDS
 - 1 Button
 - 1 Potentiometer
+- 1 74HC595 shift register (drives the LED bar)
 - 1 LCD screen
