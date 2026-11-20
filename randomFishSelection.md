@@ -1,4 +1,4 @@
-# How a random fish is selected
+# How a random fish is selected (designed by AI)
 
 ## The three player upgrades
 

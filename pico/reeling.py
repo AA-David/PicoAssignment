@@ -108,7 +108,7 @@ def startReelingMinigame(fishPos, userHash):
 
         if progressPos == 8:
             fish = generateFish()
-            randomFish = json.dumps({"fishId": fish["id"]}) 
+            randomFish = json.dumps({"fishId": fish["_id"]}) 
             for i in range(0, 8):
                 fishColumnPins[i].on()
                 paddleColumnPins[i].on()

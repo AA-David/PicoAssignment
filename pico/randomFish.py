@@ -79,7 +79,9 @@ def generateFish():
     fishWeights = []
     for fish in eligibleFish:
         fishWeights.append((fish["weight"]))
-        if fish["id"] not in state["almanac"]:
+        if fish["_id"] not in state["almanac"]:
             fishWeights[-1] *= 3
 
-    return eligibleFish[weightPicker(fishWeights)]
+    fish = eligibleFish[weightPicker(fishWeights)]
+    state["almanac"].append(fish["_id"])
+    return fish

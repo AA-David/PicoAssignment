@@ -5,6 +5,7 @@ import hashlib, binascii
 from startup import getLogin, InvalidToken
 from casting import startCastingMinigame
 from reeling import startReelingMinigame
+import mqtt
 from mqtt import subscribeState, loadState, checkState, pingBroker
 from WriteToLcd import WriteToLcd
 
@@ -23,7 +24,7 @@ while True:
 	else:
 		lcd.write(0, "press to cast")
 
-	if userHash != None:
+	if mqtt.subscribedHash != None:
 		checkState()
 		pingBroker()
 
@@ -36,11 +37,12 @@ while True:
 			userHash = binascii.hexlify(hashlib.sha256(token).digest()).decode()
 			subscribeState(userHash)  # subscribe first, then fetch, so no update is missed
 			try:
-				# TODO: loadState doesn't retry if the fetch fails, so state stays empty
 				if loadState(token):
 					lcd.write(0, "logged in")
 				else:
+					userHash = None
 					lcd.write(0, "state load fail")
+					lcd.write(1, "press btn. again")
 				sleep(1)
 			except InvalidToken:
 				lcd.write(0, "invalid token")
